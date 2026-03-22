@@ -5,70 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pepe App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #0a0f0a; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; background:#0a0f0a; font-family:'Rajdhani',monospace; }
 
-  .pages {
-    height: 100vh;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-  }
-  .pages::-webkit-scrollbar { display: none; }
+  .pages { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; }
+  .pages::-webkit-scrollbar { display:none; }
 
   .page {
-    height: 100vh;
-    scroll-snap-align: start;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+    height:100vh; scroll-snap-align:start;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    position:relative;
   }
   .page::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
-    background-size: 30px 30px;
-    pointer-events: none;
+    content:''; position:absolute; inset:0;
+    background-image:radial-gradient(circle,rgba(34,85,34,.15) 1px,transparent 1px);
+    background-size:30px 30px; pointer-events:none;
   }
 
   /* PAGE 1 */
-  .pepe-wrap { position: relative; }
+  .pepe-wrap { position:relative; }
   .pepe-glow {
-    position: absolute; width: 260px; height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
-    animation: pulse 2s ease-in-out infinite;
-    pointer-events: none;
+    position:absolute; width:260px; height:260px; border-radius:50%;
+    background:radial-gradient(circle,rgba(34,120,34,.25) 0%,transparent 70%);
+    animation:pulse 2s ease-in-out infinite; pointer-events:none;
   }
   @keyframes pulse { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.1);opacity:1} }
-  .pepe-img { width: 280px; height: 280px; object-fit: contain; }
+  .pepe-img { width:280px; height:280px; object-fit:contain; }
   .line { width:200px; height:1px; background:linear-gradient(90deg,transparent,#2d7a2d,transparent); margin:12px 0; opacity:.6; }
-  .username { color:#2d7a2d; font-size:18px; letter-spacing:3px; font-family:monospace; text-shadow:0 0 10px rgba(45,122,45,.8); }
-  .swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-family:monospace; font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
+  .username { color:#2d7a2d; font-size:18px; letter-spacing:3px; text-shadow:0 0 10px rgba(45,122,45,.8); }
+  .swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
   @keyframes bounce { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(6px);opacity:1} }
 
   /* PAGE 2 */
   #page2 { background:#050a05; }
-  .cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; margin-bottom:10px; opacity:.7; }
-  .camera-container { position:relative; width:100%; max-width:420px; height:72vh; }
-  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); border-radius:10px; opacity:.55; }
-  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; transform:scaleX(-1); }
-  .status { margin-top:10px; color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:2px; opacity:.7; }
-  #start-btn {
-    margin-top:14px; background:transparent;
-    border:1px solid #2d7a2d; color:#2d7a2d;
-    font-family:monospace; font-size:13px; letter-spacing:3px;
-    padding:10px 28px; border-radius:6px; cursor:pointer;
+  .cam-label { color:#2d7a2d; font-size:11px; letter-spacing:4px; margin-bottom:8px; opacity:.8; }
+
+  .camera-container { position:relative; width:100%; max-width:420px; height:68vh; }
+  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); border-radius:12px; opacity:.5; }
+  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:12px; }
+
+  /* Нижняя панель статов */
+  .stats-row {
+    display:flex; gap:10px; margin-top:10px; width:100%; max-width:420px; justify-content:center;
   }
+  .stat {
+    background:rgba(0,255,70,.07); border:1px solid rgba(0,255,70,.2);
+    border-radius:8px; padding:5px 12px; text-align:center; flex:1;
+  }
+  .stat .val { font-size:20px; font-weight:700; color:#00ff44; letter-spacing:1px; }
+  .stat .lbl { font-size:9px; letter-spacing:2px; color:rgba(0,255,70,.5); }
+
+  #start-btn {
+    margin-top:10px; background:transparent; border:1px solid #2d7a2d;
+    color:#2d7a2d; font-family:'Rajdhani',monospace; font-size:14px;
+    letter-spacing:3px; padding:9px 28px; border-radius:6px; cursor:pointer;
+    transition:all .2s;
+  }
+  #start-btn:active { background:rgba(45,122,45,.15); }
 </style>
 </head>
 <body>
 <div class="pages">
 
-  <!-- PAGE 1 -->
+  <!-- PAGE 1: ПЕПЕ -->
   <div class="page">
     <div class="pepe-wrap">
       <div class="pepe-glow"></div>
@@ -79,14 +81,18 @@
     <div class="swipe-hint">▼ свайп вниз</div>
   </div>
 
-  <!-- PAGE 2 -->
+  <!-- PAGE 2: СКЕЛЕТ -->
   <div class="page" id="page2">
-    <div class="cam-label">⬡ SKELETON TRACKER ⬡</div>
+    <div class="cam-label">⬡ BODY TRACKER ⬡</div>
     <div class="camera-container">
       <video id="video" playsinline autoplay muted></video>
       <canvas id="canvas"></canvas>
     </div>
-    <div class="status" id="status">Нажми чтобы начать</div>
+    <div class="stats-row">
+      <div class="stat"><div class="val" id="stat-height">--</div><div class="lbl">РОСТ см</div></div>
+      <div class="stat"><div class="val" id="stat-shoulder">--</div><div class="lbl">ПЛЕЧИ см</div></div>
+      <div class="stat"><div class="val" id="stat-status">--</div><div class="lbl">СТАТУС</div></div>
+    </div>
     <button id="start-btn" onclick="startCam()">▶ ЗАПУСТИТЬ</button>
   </div>
 
@@ -94,6 +100,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
@@ -101,60 +108,260 @@
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-const video    = document.getElementById('video');
-const canvas   = document.getElementById('canvas');
-const ctx      = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
+const video   = document.getElementById('video');
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const statH   = document.getElementById('stat-height');
+const statS   = document.getElementById('stat-shoulder');
+const statSt  = document.getElementById('stat-status');
 const startBtn = document.getElementById('start-btn');
 
-let poseLandmarks  = null;
-let handsLandmarks = [];
+let poseLm  = null;
+let handsLm = [];
+let faceLm  = null;
 let started = false;
 
-// --- Pose ---
-const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
-pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-pose.onResults(r => { poseLandmarks = r.poseLandmarks || null; });
+// Сглаживание роста
+let heightHistory = [];
 
-// --- Hands ---
+// ── POSE ──
+const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
+pose.setOptions({ modelComplexity: 2, smoothLandmarks: true, enableSegmentation: false,
+                  minDetectionConfidence: 0.55, minTrackingConfidence: 0.55 });
+pose.onResults(r => { poseLm = r.poseLandmarks || null; });
+
+// ── HANDS ──
 const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
-hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-hands.onResults(r => { handsLandmarks = r.multiHandLandmarks || []; });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 1,
+                   minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+hands.onResults(r => { handsLm = r.multiHandLandmarks || []; });
+
+// ── FACE MESH ──
+const faceMesh = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${f}` });
+faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true,
+                      minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+faceMesh.onResults(r => { faceLm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
+
+// Расстояние между двумя точками в пикселях
+function dist(a, b, W, H) {
+  return Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
+}
+
+// Рисуем красивую точку с кольцом
+function drawDot(x, y, r, color, glow) {
+  ctx.save();
+  if (glow) {
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+// Рисуем линию с градиентом
+function drawLine(x1,y1,x2,y2, color, width) {
+  ctx.save();
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width || 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Рисуем уши (треугольники над головой по точкам лица)
+function drawEars(W, H) {
+  if (!faceLm) return;
+
+  // Левое ухо — точка 234, правое — 454
+  const lEar = faceLm[234];
+  const rEar = faceLm[454];
+  const top  = faceLm[10]; // верхушка головы
+
+  if (!lEar || !rEar || !top) return;
+
+  const lx = lEar.x * W, ly = lEar.y * H;
+  const rx = rEar.x * W, ry = rEar.y * H;
+  const tx = top.x  * W, ty = top.y  * H;
+
+  const earSize = dist(lEar, rEar, W, H) * 0.35;
+
+  // Левое ухо
+  ctx.save();
+  ctx.shadowBlur = 12; ctx.shadowColor = '#00ff44';
+  ctx.strokeStyle = '#00ff44'; ctx.lineWidth = 2; ctx.fillStyle = 'rgba(0,255,70,.15)';
+  ctx.beginPath();
+  ctx.moveTo(lx, ly);
+  ctx.lineTo(lx - earSize * 0.5, ly - earSize * 1.4);
+  ctx.lineTo(lx + earSize * 0.3, ly - earSize * 0.3);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Правое ухо
+  ctx.beginPath();
+  ctx.moveTo(rx, ry);
+  ctx.lineTo(rx + earSize * 0.5, ry - earSize * 1.4);
+  ctx.lineTo(rx - earSize * 0.3, ry - earSize * 0.3);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// Рисуем контур лица (только контур, без всей сетки)
+function drawFaceOutline(W, H) {
+  if (!faceLm) return;
+  // Индексы контура лица
+  const outline = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10];
+  ctx.save();
+  ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(0,200,255,.6)';
+  ctx.strokeStyle = 'rgba(0,200,255,.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  outline.forEach((i, idx) => {
+    const p = faceLm[i];
+    if (!p) return;
+    idx === 0 ? ctx.moveTo(p.x*W, p.y*H) : ctx.lineTo(p.x*W, p.y*H);
+  });
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+}
 
 function draw() {
-  canvas.width  = video.videoWidth  || canvas.offsetWidth;
-  canvas.height = video.videoHeight || canvas.offsetHeight;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const W = canvas.width  = video.videoWidth  || canvas.offsetWidth;
+  const H = canvas.height = video.videoHeight || canvas.offsetHeight;
+  ctx.clearRect(0, 0, W, H);
 
-  if (poseLandmarks) {
-    drawConnectors(ctx, poseLandmarks, POSE_CONNECTIONS,
-      { color: '#00ff44', lineWidth: 2 });
-    drawLandmarks(ctx, poseLandmarks,
-      { color: '#00ff44', fillColor: '#003300', lineWidth: 1, radius: 5 });
-    statusEl.textContent = '✓ ОБНАРУЖЕН';
-    statusEl.style.color = '#00ff44';
+  // ── СКЕЛЕТ ТЕЛА ──
+  if (poseLm) {
+    // Соединения
+    POSE_CONNECTIONS.forEach(([a, b]) => {
+      const pa = poseLm[a], pb = poseLm[b];
+      if (!pa || !pb) return;
+      // Разные цвета для разных частей
+      let color = '#00ff44';
+      if (a >= 11 && a <= 16 || b >= 11 && b <= 16) color = '#00ff99'; // руки
+      if (a >= 23 && a <= 32 || b >= 23 && b <= 32) color = '#00ddff'; // ноги
+      drawLine(pa.x*W, pa.y*H, pb.x*W, pb.y*H, color, 2);
+    });
+
+    // Точки суставов
+    poseLm.forEach((lm, i) => {
+      if (lm.visibility < 0.4) return;
+      let color = '#00ff44', r = 4;
+      // Особые точки
+      if (i === 0) { color = '#fff'; r = 5; }                    // нос
+      if (i === 11 || i === 12) { color = '#ffff00'; r = 6; }    // плечи — ЖЁЛТЫЕ
+      if (i === 13 || i === 14) { color = '#00ff99'; r = 5; }    // локти
+      if (i === 15 || i === 16) { color = '#00ffcc'; r = 5; }    // запястья
+      if (i === 23 || i === 24) { color = '#00ddff'; r = 5; }    // бёдра
+      if (i === 25 || i === 26) { color = '#00aaff'; r = 5; }    // колени
+      if (i === 27 || i === 28) { color = '#0088ff'; r = 4; }    // лодыжки
+      drawDot(lm.x*W, lm.y*H, r, color, true);
+    });
+
+    // ── ПЛЕЧИ: подпись ширины ──
+    const ls = poseLm[11], rs = poseLm[12];
+    if (ls && rs && ls.visibility > 0.5 && rs.visibility > 0.5) {
+      const sx1 = ls.x*W, sy1 = ls.y*H;
+      const sx2 = rs.x*W, sy2 = rs.y*H;
+      // Линия между плечами с подписью
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(255,255,0,.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+      ctx.restore();
+
+      // Подпись ПЛЕЧИ
+      ctx.save();
+      ctx.fillStyle = '#ffff00';
+      ctx.font = 'bold 11px Rajdhani,monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('ПЛЕЧИ', (sx1+sx2)/2, (sy1+sy2)/2 - 8);
+      ctx.restore();
+    }
+
+    // ── ИЗМЕРЕНИЕ РОСТА ──
+    // Топ головы = точка 0 (нос) минус немного вверх
+    // Дно = пятки (27, 28)
+    const nose   = poseLm[0];
+    const lHeel  = poseLm[29];
+    const rHeel  = poseLm[30];
+
+    if (nose && (lHeel || rHeel)) {
+      const heelY  = Math.max(lHeel?.y || 0, rHeel?.y || 0);
+      const topY   = nose.y - (nose.y - (poseLm[7]?.y || nose.y)) * 1.2;
+      const pixH   = Math.abs(heelY - topY) * H;
+
+      // Реальный рост: калибровка ~2.7px = 1 см при типичной дистанции
+      const cmH = Math.round(pixH * 2.1);
+      if (cmH > 80 && cmH < 250) {
+        heightHistory.push(cmH);
+        if (heightHistory.length > 20) heightHistory.shift();
+        const avgH = Math.round(heightHistory.reduce((a,b)=>a+b,0) / heightHistory.length);
+        statH.textContent = avgH;
+      }
+
+      // Вертикальная линия роста
+      const cx = nose.x * W;
+      ctx.save();
+      ctx.setLineDash([3,3]);
+      ctx.strokeStyle = 'rgba(255,150,0,.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, topY * H);
+      ctx.lineTo(cx, heelY * H);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Ширина плеч в см
+    if (ls && rs && ls.visibility > 0.5 && rs.visibility > 0.5) {
+      const shoulderPx = dist(ls, rs, W, H);
+      const shoulderCm = Math.round(shoulderPx * 1.8);
+      if (shoulderCm > 10 && shoulderCm < 100) statS.textContent = shoulderCm;
+    }
+
+    statSt.textContent = '✓ OK';
+    statSt.style.color = '#00ff44';
+
   } else {
-    statusEl.textContent = '⟳ ПОИСК...';
-    statusEl.style.color = 'rgba(45,122,45,.6)';
+    statSt.textContent = '...';
+    statSt.style.color = 'rgba(0,255,70,.4)';
   }
 
-  for (const h of handsLandmarks) {
-    drawConnectors(ctx, h, HAND_CONNECTIONS,
-      { color: '#00eeff', lineWidth: 2 });
-    drawLandmarks(ctx, h,
-      { color: '#00eeff', fillColor: '#003333', lineWidth: 1, radius: 3 });
-  }
+  // ── РУКИ ──
+  handsLm.forEach(h => {
+    HAND_CONNECTIONS.forEach(([a, b]) => {
+      const pa = h[a], pb = h[b];
+      if (!pa || !pb) return;
+      drawLine(pa.x*W, pa.y*H, pb.x*W, pb.y*H, '#00eeff', 2);
+    });
+    h.forEach((lm, i) => {
+      const r = (i === 0) ? 5 : 3;
+      drawDot(lm.x*W, lm.y*H, r, '#00eeff', true);
+    });
+  });
+
+  // ── ЛИЦО ──
+  drawFaceOutline(W, H);
+  drawEars(W, H);
 }
 
 async function startCam() {
   if (started) return;
   started = true;
   startBtn.style.display = 'none';
-  statusEl.textContent = '⟳ ЗАГРУЗКА...';
+  statSt.textContent = '...';
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { facingMode:'user', width:{ideal:640}, height:{ideal:480} }
     });
     video.srcObject = stream;
 
@@ -162,6 +369,7 @@ async function startCam() {
       onFrame: async () => {
         await pose.send({ image: video });
         await hands.send({ image: video });
+        await faceMesh.send({ image: video });
         draw();
       },
       width: 640, height: 480
@@ -169,8 +377,8 @@ async function startCam() {
     camera.start();
 
   } catch(e) {
-    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
-    statusEl.style.color = '#ff4444';
+    statSt.textContent = '✗';
+    statSt.style.color = '#ff4444';
     startBtn.style.display = 'block';
     started = false;
   }
