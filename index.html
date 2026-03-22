@@ -1,159 +1,108 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>DuckCoin | Главный Кличер</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --primary: #fbc02d; /* Цвет утки */
-            --bg: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); /* Сочный фон */
-            --glass: rgba(255, 255, 255, 0.1);
-            --border: rgba(255, 255, 255, 0.2);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pepe App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            margin: 0; padding: 0; background: var(--bg); color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden; user-select: none;
-        }
+  body {
+    background: #0a0f0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: monospace;
+  }
 
-        /* Glassmorphism для UI */
-        .glass-panel {
-            background: var(--glass); border: 1px solid var(--border);
-            backdrop-filter: blur(10px); border-radius: 20px;
-            padding: 15px 25px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
+  /* Фон с зелёными точками */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+  }
 
-        /* Счет */
-        .score-container { margin-bottom: 30px; text-align: center; }
-        .score { font-size: 64px; font-weight: 800; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
-        .currency { font-size: 24px; color: var(--primary); font-weight: bold; }
+  /* Пепе гифка без белого фона */
+  .pepe-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-        /* Контейнер утки */
-        .click-area { position: relative; cursor: pointer; transition: transform 0.05s ease; }
-        .click-area:active { transform: scale(0.98); }
+  .pepe-img {
+    width: 280px;
+    height: 280px;
+    object-fit: contain;
+    /* Убираем белый фон через mix-blend-mode */
+    mix-blend-mode: screen;
+    filter: hue-rotate(0deg) saturate(1.2);
+  }
 
-        /* SVG Утка (анимированная) */
-        .duck-svg {
-            width: 250px; height: 250px;
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-            animation: float 3s ease-in-out infinite; /* Парение */
-        }
+  /* Зелёное свечение */
+  .pepe-glow {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
+    animation: pulse 2s ease-in-out infinite;
+    pointer-events: none;
+  }
 
-        /* Эффект сплющивания при клике */
-        @keyframes squish {
-            0% { transform: scale(1) translateY(0); }
-            30% { transform: scale(1.1, 0.9) translateY(10px); }
-            100% { transform: scale(1) translateY(0); }
-        }
-        .squish-anim { animation: squish 0.2s ease-out; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
 
-        /* Парение утки */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
+  /* Юзернейм */
+  .username {
+    margin-top: 30px;
+    color: #2d7a2d;
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(45,122,45,0.8);
+    animation: blink 3s ease-in-out infinite;
+  }
 
-        /* Пользователь */
-        .user-panel { position: absolute; bottom: 20px; font-size: 14px; color: #aaa; }
+  @keyframes blink {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; text-shadow: 0 0 20px rgba(45,200,45,0.9); }
+  }
 
-        /* Анимация разлетающихся частиц (искорок/монет) */
-        .particle {
-            position: absolute; pointer-events: none;
-            width: 15px; height: 15px; background: var(--primary);
-            border-radius: 50%; animation: particleMove 0.6s ease-out forwards;
-        }
-        @keyframes particleMove {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
-        }
-
-    </style>
+  /* Декор линии */
+  .line {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #2d7a2d, transparent);
+    margin: 15px 0;
+    opacity: 0.6;
+  }
+</style>
 </head>
 <body>
 
-    <div class="score-container glass-panel">
-        <div class="score" id="score">0</div>
-        <div class="currency">$QUACK</div>
-    </div>
+<div class="pepe-wrap">
+  <div class="pepe-glow"></div>
+  <img class="pepe-img"
+    src="https://i.ibb.co/WW50MJxt/pepe.gif"
+    alt="Pepe"
+  />
+</div>
 
-    <div class="click-area" id="click-btn">
-        <svg class="duck-svg" id="duck-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="50" cy="65" rx="35" ry="30" fill="#fbc02d"/>
-            <circle cx="50" cy="35" r="20" fill="#fbc02d"/>
-            <path d="M 50 40 L 40 45 L 50 50 Z" fill="#ff6f00"/>
-            <circle cx="43" cy="30" r="3" fill="#fff"/>
-            <circle cx="43" cy="30" r="1.5" fill="#000"/>
-            <circle cx="57" cy="30" r="3" fill="#fff"/>
-            <circle cx="57" cy="30" r="1.5" fill="#000"/>
-            <path d="M 35 25 Q 50 15 65 25 L 65 35 Q 50 25 35 35 Z" fill="#000" stroke="#fff" stroke-width="1"/>
-            <rect x="30" y="28" width="5" height="2" fill="#000" rx="1"/>
-            <rect x="65" y="28" width="5" height="2" fill="#000" rx="1"/>
-        </svg>
-    </div>
+<div class="line"></div>
+<div class="username">@libappso</div>
 
-    <div class="user-panel glass-panel" id="user-info">🦆 Agent: <span style="color:#fff;">QUACKER</span></div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.headerColor = '#1a2a6c';
-
-        const scoreElement = document.getElementById('score');
-        const duckElement = document.getElementById('duck-svg');
-        const clickArea = document.getElementById('click-btn');
-        const userInfo = document.getElementById('user-info');
-
-        let count = parseInt(localStorage.getItem('quackClicks')) || 0;
-        scoreElement.innerText = count.toLocaleString('ru-RU');
-
-        // Данные юзера из ТГ
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            userInfo.innerHTML = `🦆 Agent: <span style="color:#fff;">${tg.initDataUnsafe.user.first_name}</span>`;
-        }
-
-        clickArea.addEventListener('click', (e) => {
-            count++;
-            scoreElement.innerText = count.toLocaleString('ru-RU');
-            localStorage.setItem('quackClicks', count);
-
-            // Вибрация (ТМА)
-            tg.HapticFeedback.impactOccurred('medium');
-
-            // Анимация сплющивания (перезапуск)
-            duckElement.classList.remove('squish-anim');
-            void duckElement.offsetWidth; // Магия для перезапуска CSS анимации
-            duckElement.classList.add('squish-anim');
-
-            // Создаем искры
-            createParticles(e.clientX, e.clientY);
-        });
-
-        // Функция создания разлетающихся частиц
-        function createParticles(x, y) {
-            for (let i = 0; i < 8; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                
-                // Случайное направление разлета
-                const randomX = (Math.random() - 0.5) * 150;
-                const randomY = (Math.random() - 0.5) * 150;
-                
-                particle.style.setProperty('--x', `${randomX}px`);
-                particle.style.setProperty('--y', `${randomY}px`);
-                particle.style.left = `${x - 7}px`;
-                particle.style.top = `${y - 7}px`;
-                
-                // Случайный цвет (золото/оранжевый)
-                particle.style.background = Math.random() > 0.5 ? '#fbc02d' : '#ff6f00';
-
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 600);
-            }
-        }
-    </script>
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) tg.expand();
+</script>
 </body>
 </html>
