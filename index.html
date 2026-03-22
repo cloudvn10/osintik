@@ -1,77 +1,67 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pepe App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height:100%; overflow:hidden; background:#0a0f0a; font-family:'Rajdhani',monospace; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a0f0a; }
 
-  .pages { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; }
-  .pages::-webkit-scrollbar { display:none; }
+  .pages {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+  }
+  .pages::-webkit-scrollbar { display: none; }
 
   .page {
-    height:100vh; scroll-snap-align:start;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center; position:relative;
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
   }
   .page::before {
-    content:''; position:absolute; inset:0;
-    background-image:radial-gradient(circle,rgba(34,85,34,.15) 1px,transparent 1px);
-    background-size:30px 30px; pointer-events:none;
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
   }
 
   /* PAGE 1 */
-  .pepe-wrap { position:relative; }
+  .pepe-wrap { position: relative; }
   .pepe-glow {
-    position:absolute; width:260px; height:260px; border-radius:50%;
-    background:radial-gradient(circle,rgba(34,120,34,.25) 0%,transparent 70%);
-    animation:pulse 2s ease-in-out infinite; pointer-events:none;
+    position: absolute; width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
+    animation: pulse 2s ease-in-out infinite;
+    pointer-events: none;
   }
   @keyframes pulse { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.1);opacity:1} }
-  .pepe-img { width:280px; height:280px; object-fit:contain; }
+  .pepe-img { width: 280px; height: 280px; object-fit: contain; }
   .line { width:200px; height:1px; background:linear-gradient(90deg,transparent,#2d7a2d,transparent); margin:12px 0; opacity:.6; }
-  .username { color:#2d7a2d; font-size:18px; letter-spacing:3px; text-shadow:0 0 10px rgba(45,122,45,.8); }
-  .swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
+  .username { color:#2d7a2d; font-size:18px; letter-spacing:3px; font-family:monospace; text-shadow:0 0 10px rgba(45,122,45,.8); }
+  .swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-family:monospace; font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
   @keyframes bounce { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(6px);opacity:1} }
 
   /* PAGE 2 */
   #page2 { background:#050a05; }
-  .cam-label { color:#2d7a2d; font-size:11px; letter-spacing:4px; margin-bottom:6px; opacity:.8; }
-  .camera-container { position:relative; width:100%; max-width:420px; height:58vh; }
-  /* Видео БЕЗ зеркала — зеркалим в canvas */
-  #video { width:100%; height:100%; object-fit:cover; border-radius:12px; opacity:.5; }
-  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:12px; }
-
-  /* Фильтры */
-  .filters {
-    display:flex; gap:6px; margin:8px 0; flex-wrap:wrap; justify-content:center;
-    max-width:420px;
-  }
-  .fbtn {
-    background:rgba(0,255,70,.07); border:1px solid rgba(0,255,70,.25);
-    color:rgba(0,255,70,.5); font-family:'Rajdhani',monospace;
-    font-size:11px; letter-spacing:2px; padding:5px 10px;
-    border-radius:6px; cursor:pointer; transition:all .15s;
-  }
-  .fbtn.on {
-    background:rgba(0,255,70,.18); border-color:#00ff44;
-    color:#00ff44;
-  }
-
-  /* Статы */
-  .stats-row { display:flex; gap:8px; max-width:420px; width:100%; justify-content:center; }
-  .stat { background:rgba(0,255,70,.07); border:1px solid rgba(0,255,70,.2); border-radius:8px; padding:4px 10px; text-align:center; flex:1; }
-  .stat .val { font-size:18px; font-weight:700; color:#00ff44; letter-spacing:1px; }
-  .stat .lbl { font-size:9px; letter-spacing:2px; color:rgba(0,255,70,.5); }
-
+  .cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; margin-bottom:10px; opacity:.7; }
+  .camera-container { position:relative; width:100%; max-width:420px; height:72vh; }
+  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); border-radius:10px; opacity:.55; }
+  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; transform:scaleX(-1); }
+  .status { margin-top:10px; color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:2px; opacity:.7; }
   #start-btn {
-    margin-top:8px; background:transparent; border:1px solid #2d7a2d;
-    color:#2d7a2d; font-family:'Rajdhani',monospace; font-size:14px;
-    letter-spacing:3px; padding:8px 28px; border-radius:6px; cursor:pointer;
+    margin-top:14px; background:transparent;
+    border:1px solid #2d7a2d; color:#2d7a2d;
+    font-family:monospace; font-size:13px; letter-spacing:3px;
+    padding:10px 28px; border-radius:6px; cursor:pointer;
   }
 </style>
 </head>
@@ -91,28 +81,12 @@
 
   <!-- PAGE 2 -->
   <div class="page" id="page2">
-    <div class="cam-label">⬡ BODY TRACKER ⬡</div>
+    <div class="cam-label">⬡ SKELETON TRACKER ⬡</div>
     <div class="camera-container">
       <video id="video" playsinline autoplay muted></video>
       <canvas id="canvas"></canvas>
     </div>
-
-    <!-- Фильтры -->
-    <div class="filters">
-      <button class="fbtn on" id="f-body"  onclick="toggle('body')">ТЕЛО</button>
-      <button class="fbtn on" id="f-hands" onclick="toggle('hands')">РУКИ</button>
-      <button class="fbtn on" id="f-face"  onclick="toggle('face')">ЛИЦО</button>
-      <button class="fbtn on" id="f-ears"  onclick="toggle('ears')">УШИ</button>
-      <button class="fbtn on" id="f-shoulder" onclick="toggle('shoulder')">ПЛЕЧИ</button>
-      <button class="fbtn on" id="f-height" onclick="toggle('height')">РОСТ</button>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat"><div class="val" id="stat-height">--</div><div class="lbl">РОСТ см</div></div>
-      <div class="stat"><div class="val" id="stat-shoulder">--</div><div class="lbl">ПЛЕЧИ см</div></div>
-      <div class="stat"><div class="val" id="stat-status">--</div><div class="lbl">СТАТУС</div></div>
-    </div>
-
+    <div class="status" id="status">Нажми чтобы начать</div>
     <button id="start-btn" onclick="startCam()">▶ ЗАПУСТИТЬ</button>
   </div>
 
@@ -120,7 +94,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
@@ -131,211 +104,75 @@ if (tg) tg.expand();
 const video    = document.getElementById('video');
 const canvas   = document.getElementById('canvas');
 const ctx      = canvas.getContext('2d');
-const statH    = document.getElementById('stat-height');
-const statS    = document.getElementById('stat-shoulder');
-const statSt   = document.getElementById('stat-status');
+const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('start-btn');
 
-// Состояние фильтров
-const filters = { body:true, hands:true, face:true, ears:true, shoulder:true, height:true };
-
-function toggle(key) {
-  filters[key] = !filters[key];
-  const btn = document.getElementById('f-' + key);
-  btn.classList.toggle('on', filters[key]);
-}
-
-let poseLm  = null;
-let handsLm = [];
-let faceLm  = null;
+let poseLandmarks  = null;
+let handsLandmarks = [];
 let started = false;
-let heightHistory = [];
 
-// ── POSE ──
+// --- Pose ---
 const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
-pose.setOptions({ modelComplexity:2, smoothLandmarks:true, enableSegmentation:false,
-                  minDetectionConfidence:0.55, minTrackingConfidence:0.55 });
-pose.onResults(r => { poseLm = r.poseLandmarks || null; });
+pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+pose.onResults(r => { poseLandmarks = r.poseLandmarks || null; });
 
-// ── HANDS ──
+// --- Hands ---
 const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
-hands.setOptions({ maxNumHands:2, modelComplexity:1,
-                   minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-hands.onResults(r => { handsLm = r.multiHandLandmarks || []; });
-
-// ── FACE ──
-const faceMesh = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${f}` });
-faceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true,
-                      minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-faceMesh.onResults(r => { faceLm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
-
-function dist(a, b, W, H) {
-  return Math.hypot((a.x-b.x)*W, (a.y-b.y)*H);
-}
-
-function drawDot(x, y, r, color) {
-  ctx.save();
-  ctx.shadowBlur = 10; ctx.shadowColor = color;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
-  ctx.fillStyle = color; ctx.fill();
-  ctx.restore();
-}
-
-function drawLine(x1,y1,x2,y2,color,w) {
-  ctx.save();
-  ctx.shadowBlur = 6; ctx.shadowColor = color;
-  ctx.strokeStyle = color; ctx.lineWidth = w||2; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  ctx.restore();
-}
+hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+hands.onResults(r => { handsLandmarks = r.multiHandLandmarks || []; });
 
 function draw() {
-  const W = canvas.width  = video.videoWidth  || canvas.offsetWidth;
-  const H = canvas.height = video.videoHeight || canvas.offsetHeight;
-  ctx.clearRect(0, 0, W, H);
+  canvas.width  = video.videoWidth  || canvas.offsetWidth;
+  canvas.height = video.videoHeight || canvas.offsetHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // ЗЕРКАЛО в канвасе
-  ctx.save();
-  ctx.translate(W, 0);
-  ctx.scale(-1, 1);
-
-  // ── ТЕЛО ──
-  if (filters.body && poseLm) {
-    POSE_CONNECTIONS.forEach(([a,b]) => {
-      const pa=poseLm[a], pb=poseLm[b];
-      if (!pa||!pb||pa.visibility<0.4||pb.visibility<0.4) return;
-      let c='#00ff44';
-      if ((a>=11&&a<=16)||(b>=11&&b<=16)) c='#00ff99';
-      if ((a>=23&&a<=32)||(b>=23&&b<=32)) c='#00ddff';
-      drawLine(pa.x*W,pa.y*H,pb.x*W,pb.y*H,c,2);
-    });
-    poseLm.forEach((lm,i) => {
-      if (lm.visibility<0.4) return;
-      let c='#00ff44', r=4;
-      if (i===0){c='#fff';r=5;}
-      if (i===11||i===12){c='#ffff00';r=6;}
-      if (i===13||i===14){c='#00ff99';r=5;}
-      if (i===15||i===16){c='#00ffcc';r=5;}
-      if (i===23||i===24){c='#00ddff';r=5;}
-      if (i===25||i===26){c='#00aaff';r=5;}
-      if (i===27||i===28){c='#0088ff';r=4;}
-      drawDot(lm.x*W,lm.y*H,r,c);
-    });
-    statSt.textContent='✓ OK'; statSt.style.color='#00ff44';
-  } else if (!poseLm) {
-    statSt.textContent='...'; statSt.style.color='rgba(0,255,70,.4)';
+  if (poseLandmarks) {
+    drawConnectors(ctx, poseLandmarks, POSE_CONNECTIONS,
+      { color: '#00ff44', lineWidth: 2 });
+    drawLandmarks(ctx, poseLandmarks,
+      { color: '#00ff44', fillColor: '#003300', lineWidth: 1, radius: 5 });
+    statusEl.textContent = '✓ ОБНАРУЖЕН';
+    statusEl.style.color = '#00ff44';
+  } else {
+    statusEl.textContent = '⟳ ПОИСК...';
+    statusEl.style.color = 'rgba(45,122,45,.6)';
   }
 
-  // ── ПЛЕЧИ ──
-  if (filters.shoulder && poseLm) {
-    const ls=poseLm[11], rs=poseLm[12];
-    if (ls&&rs&&ls.visibility>0.5&&rs.visibility>0.5) {
-      ctx.save(); ctx.setLineDash([4,4]);
-      ctx.strokeStyle='rgba(255,255,0,.6)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(ls.x*W,ls.y*H); ctx.lineTo(rs.x*W,rs.y*H); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle='#ffff00'; ctx.font='bold 11px Rajdhani,monospace'; ctx.textAlign='center';
-      ctx.fillText('ПЛЕЧИ',(ls.x+rs.x)/2*W,(ls.y+rs.y)/2*H-8);
-      ctx.restore();
-      const scm = Math.round(dist(ls,rs,W,H)*1.8);
-      if (scm>10&&scm<100) statS.textContent=scm;
-    }
+  for (const h of handsLandmarks) {
+    drawConnectors(ctx, h, HAND_CONNECTIONS,
+      { color: '#00eeff', lineWidth: 2 });
+    drawLandmarks(ctx, h,
+      { color: '#00eeff', fillColor: '#003333', lineWidth: 1, radius: 3 });
   }
-
-  // ── РОСТ ──
-  if (filters.height && poseLm) {
-    const nose=poseLm[0], lh=poseLm[29], rh=poseLm[30];
-    if (nose&&(lh||rh)) {
-      const heelY=Math.max(lh?.y||0,rh?.y||0);
-      const topY=nose.y-Math.abs(nose.y-(poseLm[7]?.y||nose.y))*1.3;
-      const pixH=Math.abs(heelY-topY)*H;
-      const cmH=Math.round(pixH*2.1);
-      if (cmH>80&&cmH<250) {
-        heightHistory.push(cmH);
-        if (heightHistory.length>20) heightHistory.shift();
-        statH.textContent=Math.round(heightHistory.reduce((a,b)=>a+b,0)/heightHistory.length);
-      }
-      ctx.save(); ctx.setLineDash([3,3]);
-      ctx.strokeStyle='rgba(255,150,0,.4)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(nose.x*W,topY*H); ctx.lineTo(nose.x*W,heelY*H); ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  // ── РУКИ ──
-  if (filters.hands) {
-    handsLm.forEach(h => {
-      HAND_CONNECTIONS.forEach(([a,b]) => {
-        const pa=h[a],pb=h[b];
-        if (!pa||!pb) return;
-        drawLine(pa.x*W,pa.y*H,pb.x*W,pb.y*H,'#00eeff',2);
-      });
-      h.forEach((lm,i) => drawDot(lm.x*W,lm.y*H,i===0?5:3,'#00eeff'));
-    });
-  }
-
-  // ── ЛИЦО ──
-  if (filters.face && faceLm) {
-    const outline=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10];
-    ctx.save(); ctx.shadowBlur=8; ctx.shadowColor='rgba(0,200,255,.6)';
-    ctx.strokeStyle='rgba(0,200,255,.6)'; ctx.lineWidth=1.5;
-    ctx.beginPath();
-    outline.forEach((i,idx) => {
-      const p=faceLm[i]; if(!p) return;
-      idx===0?ctx.moveTo(p.x*W,p.y*H):ctx.lineTo(p.x*W,p.y*H);
-    });
-    ctx.closePath(); ctx.stroke(); ctx.restore();
-  }
-
-  // ── УШИ ──
-  if (filters.ears && faceLm) {
-    const lEar=faceLm[234], rEar=faceLm[454];
-    if (lEar&&rEar) {
-      const sz=dist(lEar,rEar,W,H)*0.35;
-      ctx.save(); ctx.shadowBlur=12; ctx.shadowColor='#00ff44';
-      ctx.strokeStyle='#00ff44'; ctx.lineWidth=2; ctx.fillStyle='rgba(0,255,70,.12)';
-      // Левое
-      ctx.beginPath();
-      ctx.moveTo(lEar.x*W,lEar.y*H);
-      ctx.lineTo(lEar.x*W-sz*.5,lEar.y*H-sz*1.4);
-      ctx.lineTo(lEar.x*W+sz*.3,lEar.y*H-sz*.3);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Правое
-      ctx.beginPath();
-      ctx.moveTo(rEar.x*W,rEar.y*H);
-      ctx.lineTo(rEar.x*W+sz*.5,rEar.y*H-sz*1.4);
-      ctx.lineTo(rEar.x*W-sz*.3,rEar.y*H-sz*.3);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  ctx.restore(); // конец зеркала
 }
 
 async function startCam() {
   if (started) return;
   started = true;
-  startBtn.style.display='none';
-  statSt.textContent='...';
+  startBtn.style.display = 'none';
+  statusEl.textContent = '⟳ ЗАГРУЗКА...';
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
     });
     video.srcObject = stream;
+
     const camera = new Camera(video, {
       onFrame: async () => {
-        await pose.send({image:video});
-        await hands.send({image:video});
-        await faceMesh.send({image:video});
+        await pose.send({ image: video });
+        await hands.send({ image: video });
         draw();
       },
-      width:640, height:480
+      width: 640, height: 480
     });
     camera.start();
+
   } catch(e) {
-    statSt.textContent='✗'; statSt.style.color='#ff4444';
-    startBtn.style.display='block'; started=false;
+    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+    statusEl.style.color = '#ff4444';
+    startBtn.style.display = 'block';
+    started = false;
   }
 }
 </script>
