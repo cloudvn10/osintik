@@ -6,270 +6,400 @@
 <title>Pepe App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #0a0f0a; }
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; background:#0a0f0a; }
 
-  /* Контейнер страниц - вертикальный скролл */
-  .pages {
-    height: 100vh;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
-  }
-  .pages::-webkit-scrollbar { display: none; }
+.pages {
+  height:100vh; overflow-y:scroll;
+  scroll-snap-type:y mandatory; scroll-behavior:smooth;
+}
+.pages::-webkit-scrollbar { display:none; }
 
-  .page {
-    height: 100vh;
-    scroll-snap-align: start;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
+.page {
+  height:100vh; scroll-snap-align:start;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  position:relative;
+}
+.page::before {
+  content:''; position:absolute; inset:0;
+  background-image:radial-gradient(circle,rgba(34,85,34,0.15) 1px,transparent 1px);
+  background-size:30px 30px; pointer-events:none;
+}
 
-  /* Фоновая сетка */
-  .page::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
-    background-size: 30px 30px;
-    pointer-events: none;
-  }
+/* PAGE 1 */
+.pepe-wrap { position:relative; display:flex; align-items:center; justify-content:center; }
+.pepe-glow {
+  position:absolute; width:260px; height:260px; border-radius:50%;
+  background:radial-gradient(circle,rgba(34,120,34,0.25) 0%,transparent 70%);
+  animation:pulse 2s ease-in-out infinite; pointer-events:none;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.1);opacity:1} }
+.pepe-img { width:280px; height:280px; object-fit:contain; }
+.username { margin-top:25px; color:#2d7a2d; font-size:18px; letter-spacing:3px; font-family:monospace; text-shadow:0 0 10px rgba(45,122,45,0.8); }
+.line { width:200px; height:1px; background:linear-gradient(90deg,transparent,#2d7a2d,transparent); margin:12px 0; opacity:0.6; }
+.swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,0.5); font-family:monospace; font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0);opacity:0.5} 50%{transform:translateY(6px);opacity:1} }
 
-  /* ===== СТРАНИЦА 1 - ПЕПЕ ===== */
-  .pepe-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .pepe-glow {
-    position: absolute;
-    width: 260px; height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
-    animation: pulse 2s ease-in-out infinite;
-    pointer-events: none;
-  }
-  @keyframes pulse {
-    0%,100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.1); opacity: 1; }
-  }
-  .pepe-img {
-    width: 280px; height: 280px;
-    object-fit: contain;
-  }
-  .username {
-    margin-top: 25px;
-    color: #2d7a2d;
-    font-size: 18px;
-    letter-spacing: 3px;
-    font-family: monospace;
-    text-shadow: 0 0 10px rgba(45,122,45,0.8);
-  }
-  .line {
-    width: 200px; height: 1px;
-    background: linear-gradient(90deg, transparent, #2d7a2d, transparent);
-    margin: 12px 0;
-    opacity: 0.6;
-  }
-  .swipe-hint {
-    position: absolute;
-    bottom: 25px;
-    color: rgba(45,122,45,0.5);
-    font-family: monospace;
-    font-size: 12px;
-    letter-spacing: 2px;
-    animation: bounce 2s ease-in-out infinite;
-  }
-  @keyframes bounce {
-    0%,100% { transform: translateY(0); opacity: 0.5; }
-    50% { transform: translateY(6px); opacity: 1; }
-  }
+/* PAGE 2 */
+#page2 { background:#050a05; justify-content:flex-start; padding-top:10px; }
 
-  /* ===== СТРАНИЦА 2 - СКЕЛЕТ ===== */
-  #page2 { background: #050a05; }
+.cam-header {
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; max-width:400px; padding:0 8px; margin-bottom:6px;
+}
+.cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; opacity:0.7; }
 
-  .camera-container {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    height: 70vh;
-  }
+/* Кнопки управления */
+.controls {
+  display:flex; gap:8px; align-items:center;
+}
+.ctrl-btn {
+  background:rgba(45,122,45,0.15); border:1px solid rgba(45,122,45,0.4);
+  color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:1px;
+  padding:5px 12px; border-radius:5px; cursor:pointer; transition:all 0.2s;
+}
+.ctrl-btn:hover { background:rgba(45,122,45,0.3); }
+.ctrl-btn.active { background:rgba(45,122,45,0.3); border-color:#2d7a2d; }
 
-  #video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1); /* зеркало */
-    border-radius: 12px;
-    opacity: 0.6;
-  }
+.camera-container {
+  position:relative; width:100%; max-width:400px;
+  height:55vh; overflow:hidden; border-radius:12px;
+}
+#video {
+  width:100%; height:100%; object-fit:cover;
+  border-radius:12px; opacity:0.55;
+}
+#canvas {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%; border-radius:12px;
+}
 
-  #canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    transform: scaleX(-1);
-    border-radius: 12px;
-  }
+/* Инфо панели */
+.info-row {
+  display:flex; gap:8px; width:100%; max-width:400px;
+  padding:0 8px; margin-top:8px;
+}
+.info-box {
+  flex:1; background:rgba(10,20,10,0.8);
+  border:1px solid rgba(45,122,45,0.3);
+  border-radius:8px; padding:7px 10px; text-align:center;
+}
+.info-box .val {
+  font-family:monospace; font-size:20px; font-weight:bold;
+  color:#00ff44; text-shadow:0 0 8px rgba(0,255,68,0.5);
+}
+.info-box .lbl {
+  font-family:monospace; font-size:9px;
+  letter-spacing:2px; color:rgba(45,122,45,0.6);
+  margin-top:2px;
+}
 
-  .cam-label {
-    color: #2d7a2d;
-    font-family: monospace;
-    font-size: 12px;
-    letter-spacing: 3px;
-    margin-bottom: 12px;
-    opacity: 0.7;
-  }
+.status-bar {
+  width:100%; max-width:400px; padding:0 8px;
+  margin-top:6px; display:flex; align-items:center; gap:8px;
+}
+.status-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:#333; flex-shrink:0;
+  transition:background 0.3s;
+}
+.status-dot.active { background:#00ff44; box-shadow:0 0 6px #00ff44; animation:dotPulse 1s infinite; }
+@keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.status-txt { font-family:monospace; font-size:10px; color:rgba(45,122,45,0.6); letter-spacing:1px; }
 
-  .status {
-    margin-top: 12px;
-    color: #2d7a2d;
-    font-family: monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    opacity: 0.6;
-  }
+#start-btn {
+  margin-top:10px;
+  background:transparent; border:1px solid #2d7a2d;
+  color:#2d7a2d; font-family:monospace; font-size:13px;
+  letter-spacing:3px; padding:10px 30px; border-radius:6px;
+  cursor:pointer; transition:all 0.2s;
+}
+#start-btn:hover { background:rgba(45,122,45,0.1); }
 
-  #start-btn {
-    margin-top: 15px;
-    background: transparent;
-    border: 1px solid #2d7a2d;
-    color: #2d7a2d;
-    font-family: monospace;
-    font-size: 13px;
-    letter-spacing: 3px;
-    padding: 10px 30px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  #start-btn:hover { background: rgba(45,122,45,0.1); }
+/* Оверлей возраста */
+.age-overlay {
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.7); border:1px solid rgba(0,255,68,0.4);
+  border-radius:8px; padding:4px 14px;
+  font-family:monospace; font-size:13px; color:#00ff44;
+  letter-spacing:2px; white-space:nowrap;
+  display:none;
+}
 </style>
 </head>
 <body>
-
 <div class="pages">
 
-  <!-- СТРАНИЦА 1: ПЕПЕ -->
-  <div class="page" id="page1">
-    <div class="pepe-wrap">
-      <div class="pepe-glow"></div>
-      <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+<!-- PAGE 1 -->
+<div class="page" id="page1">
+  <div class="pepe-wrap">
+    <div class="pepe-glow"></div>
+    <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+  </div>
+  <div class="line"></div>
+  <div class="username">@libappso</div>
+  <div class="swipe-hint">▼ свайп вниз</div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page" id="page2">
+  <div class="cam-header">
+    <div class="cam-label">⬡ POSE + HANDS + AGE ⬡</div>
+    <div class="controls">
+      <button class="ctrl-btn active" id="flip-btn" onclick="flipCamera()">⟳ FLIP</button>
+      <button class="ctrl-btn" id="cam-switch-btn" onclick="switchCamera()">📷</button>
     </div>
-    <div class="line"></div>
-    <div class="username">@libappso</div>
-    <div class="swipe-hint">▼ свайп вниз</div>
   </div>
 
-  <!-- СТРАНИЦА 2: СКЕЛЕТ -->
-  <div class="page" id="page2">
-    <div class="cam-label">⬡ POSE DETECTION ⬡</div>
-    <div class="camera-container">
-      <video id="video" playsinline autoplay muted></video>
-      <canvas id="canvas"></canvas>
-    </div>
-    <div class="status" id="status">Нажми кнопку чтобы начать</div>
-    <button id="start-btn" onclick="startCamera()">▶ ЗАПУСТИТЬ</button>
+  <div class="camera-container">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="age-overlay" id="age-overlay">AGE: ~??</div>
   </div>
+
+  <div class="info-row">
+    <div class="info-box">
+      <div class="val" id="age-val">—</div>
+      <div class="lbl">ВОЗРАСТ</div>
+    </div>
+    <div class="info-box">
+      <div class="val" id="pose-val">—</div>
+      <div class="lbl">ПОЗА</div>
+    </div>
+    <div class="info-box">
+      <div class="val" id="points-val">0</div>
+      <div class="lbl">ТОЧЕК</div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <div class="status-txt" id="status-txt">Нажми ЗАПУСТИТЬ</div>
+  </div>
+
+  <button id="start-btn" onclick="startCamera()">▶ ЗАПУСТИТЬ</button>
+</div>
 
 </div>
 
-<!-- MediaPipe Pose -->
+<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-const video   = document.getElementById('video');
-const canvas  = document.getElementById('canvas');
-const ctx     = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-const startBtn = document.getElementById('start-btn');
+const video    = document.getElementById('video');
+const canvas   = document.getElementById('canvas');
+const ctx      = canvas.getContext('2d');
+const statusDot = document.getElementById('status-dot');
+const statusTxt = document.getElementById('status-txt');
+const ageVal   = document.getElementById('age-val');
+const poseVal  = document.getElementById('pose-val');
+const pointsVal= document.getElementById('points-val');
+const ageOverlay = document.getElementById('age-overlay');
 
-let poseDetector = null;
+let mirrored = true;
+let facingMode = 'user';
 let cameraStarted = false;
+let currentStream = null;
+let mpCamera = null;
 
-function onResults(results) {
-  canvas.width  = video.videoWidth  || canvas.offsetWidth;
-  canvas.height = video.videoHeight || canvas.offsetHeight;
+// ── Определение позы ──────────────────────────────
+function detectPose(lm) {
+  if (!lm || lm.length < 33) return '—';
+  const nose      = lm[0];
+  const lShoulder = lm[11];
+  const rShoulder = lm[12];
+  const lHip      = lm[23];
+  const rHip      = lm[24];
+  const lKnee     = lm[25];
+  const rKnee     = lm[26];
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const shoulderY = (lShoulder.y + rShoulder.y) / 2;
+  const hipY      = (lHip.y + rHip.y) / 2;
+  const kneeY     = (lKnee.y + rKnee.y) / 2;
 
-  if (results.poseLandmarks) {
-    // Рисуем соединения скелета
-    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-      color: '#00ff44',
-      lineWidth: 2
-    });
-    // Рисуем точки суставов
-    drawLandmarks(ctx, results.poseLandmarks, {
-      color: '#00ff44',
-      fillColor: '#003300',
-      lineWidth: 1,
-      radius: 4
-    });
-    statusEl.textContent = '✓ ЧЕЛОВЕК ОБНАРУЖЕН';
-    statusEl.style.color = '#00ff44';
-  } else {
-    statusEl.textContent = '⟳ ПОИСК ЧЕЛОВЕКА...';
-    statusEl.style.color = 'rgba(45,122,45,0.6)';
-  }
+  if (Math.abs(shoulderY - hipY) < 0.08) return 'ЛЁЖА';
+  if (kneeY < hipY + 0.05)               return 'СИДЯ';
+  if (nose.y < shoulderY)                return 'СТОИТ';
+  return 'СТОИТ';
 }
 
+// ── Грубая оценка возраста по пропорциям ─────────
+function estimateAge(lm) {
+  if (!lm || lm.length < 33) return null;
+  const nose      = lm[0];
+  const lEar      = lm[7];
+  const rEar      = lm[8];
+  const lShoulder = lm[11];
+  const rShoulder = lm[12];
+  const lHip      = lm[23];
+  const rHip      = lm[24];
+
+  const headW     = Math.abs(lEar.x - rEar.x);
+  const shoulderW = Math.abs(lShoulder.x - rShoulder.x);
+  const torsoH    = Math.abs(((lHip.y+rHip.y)/2) - ((lShoulder.y+rShoulder.y)/2));
+
+  if (headW < 0.001 || shoulderW < 0.001) return null;
+
+  const ratio = shoulderW / headW;  // взрослые ~2.5, дети ~1.8
+
+  let base;
+  if (ratio < 1.9)      base = 8;
+  else if (ratio < 2.1) base = 13;
+  else if (ratio < 2.3) base = 18;
+  else if (ratio < 2.5) base = 25;
+  else if (ratio < 2.7) base = 35;
+  else                  base = 45;
+
+  const spread = 5;
+  const lo = Math.max(1,  base - spread);
+  const hi = base + spread;
+  return { lo, hi, mid: base };
+}
+
+// ── Цвет трекеров ──────────────────────────────
+const GREEN      = '#00ff44';
+const GREEN_DARK = '#003300';
+const HAND_COLOR = '#44ffcc';
+const HAND_FILL  = '#003322';
+
+let lastPoseLandmarks = null;
+let lastHandsLandmarks = null;
+let frameCount = 0;
+
+function drawFrame() {
+  canvas.width  = video.videoWidth  || canvas.offsetWidth;
+  canvas.height = video.videoHeight || canvas.offsetHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let pts = 0;
+
+  // Поза
+  if (lastPoseLandmarks) {
+    drawConnectors(ctx, lastPoseLandmarks, POSE_CONNECTIONS, { color: GREEN, lineWidth: 2 });
+    drawLandmarks(ctx, lastPoseLandmarks, { color: GREEN, fillColor: GREEN_DARK, lineWidth: 1, radius: 4 });
+    pts += lastPoseLandmarks.length;
+
+    const pose = detectPose(lastPoseLandmarks);
+    poseVal.textContent = pose;
+
+    // Каждые 30 кадров обновляем возраст
+    if (frameCount % 30 === 0) {
+      const age = estimateAge(lastPoseLandmarks);
+      if (age) {
+        ageVal.textContent = age.lo + '-' + age.hi;
+        ageOverlay.textContent = 'AGE: ~' + age.lo + '-' + age.hi;
+        ageOverlay.style.display = 'block';
+      }
+    }
+  }
+
+  // Руки + пальцы
+  if (lastHandsLandmarks) {
+    for (const handLm of lastHandsLandmarks) {
+      drawConnectors(ctx, handLm, HAND_CONNECTIONS, { color: HAND_COLOR, lineWidth: 2 });
+      drawLandmarks(ctx, handLm, { color: HAND_COLOR, fillColor: HAND_FILL, lineWidth: 1, radius: 3 });
+      pts += handLm.length;
+    }
+  }
+
+  pointsVal.textContent = pts;
+  frameCount++;
+}
+
+// ── Pose ──────────────────────────────────────
+const pose = new Pose({
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+});
+pose.setOptions({ modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+pose.onResults(r => {
+  lastPoseLandmarks = r.poseLandmarks || null;
+  drawFrame();
+  if (lastPoseLandmarks) {
+    statusDot.classList.add('active');
+    statusTxt.textContent = '✓ ОБНАРУЖЕН';
+  } else {
+    statusDot.classList.remove('active');
+    statusTxt.textContent = '⟳ ПОИСК...';
+  }
+});
+
+// ── Hands ─────────────────────────────────────
+const hands = new Hands({
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+});
+hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.6, minTrackingConfidence:0.5 });
+hands.onResults(r => {
+  lastHandsLandmarks = r.multiHandLandmarks?.length ? r.multiHandLandmarks : null;
+});
+
+// ── Запуск камеры ─────────────────────────────
 async function startCamera() {
   if (cameraStarted) return;
   cameraStarted = true;
-  startBtn.style.display = 'none';
-  statusEl.textContent = '⟳ ЗАГРУЗКА МОДЕЛИ...';
+  document.getElementById('start-btn').style.display = 'none';
+  statusTxt.textContent = '⟳ ЗАГРУЗКА...';
 
   try {
-    // Запрос камеры
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: 640, height: 480 }
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width:640, height:480 }
     });
-    video.srcObject = stream;
+    video.srcObject = currentStream;
+    video.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
+    canvas.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
 
-    // Инициализация MediaPipe Pose
-    poseDetector = new Pose({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-    });
-
-    poseDetector.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    poseDetector.onResults(onResults);
-
-    // Запускаем камеру через MediaPipe Camera
-    const camera = new Camera(video, {
+    mpCamera = new Camera(video, {
       onFrame: async () => {
-        await poseDetector.send({ image: video });
+        await pose.send({ image: video });
+        await hands.send({ image: video });
       },
-      width: 640,
-      height: 480
+      width:640, height:480
     });
-
-    camera.start();
-    statusEl.textContent = '⟳ ПОИСК ЧЕЛОВЕКА...';
-
-  } catch (err) {
-    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
-    statusEl.style.color = '#ff4444';
-    startBtn.style.display = 'block';
-    startBtn.textContent = '↺ ПОВТОРИТЬ';
+    mpCamera.start();
+    statusTxt.textContent = '⟳ ПОИСК ЧЕЛОВЕКА...';
+  } catch(e) {
+    statusTxt.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+    document.getElementById('start-btn').style.display = 'block';
     cameraStarted = false;
+  }
+}
+
+// ── Зеркало ───────────────────────────────────
+function flipCamera() {
+  mirrored = !mirrored;
+  video.style.transform  = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
+  canvas.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
+}
+
+// ── Переключить фронт/тыл ─────────────────────
+async function switchCamera() {
+  if (!cameraStarted) return;
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+  if (mpCamera) mpCamera.stop();
+
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width:640, height:480 }
+    });
+    video.srcObject = currentStream;
+
+    mpCamera = new Camera(video, {
+      onFrame: async () => {
+        await pose.send({ image: video });
+        await hands.send({ image: video });
+      },
+      width:640, height:480
+    });
+    mpCamera.start();
+  } catch(e) {
+    statusTxt.textContent = '✗ ОШИБКА КАМЕРЫ';
   }
 }
 </script>
