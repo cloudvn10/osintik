@@ -7,102 +7,271 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a0f0a; }
 
-  body {
-    background: #0a0f0a;
+  /* Контейнер страниц - вертикальный скролл */
+  .pages {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  .pages::-webkit-scrollbar { display: none; }
+
+  .page {
+    height: 100vh;
+    scroll-snap-align: start;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    overflow: hidden;
-    font-family: monospace;
+    position: relative;
   }
 
-  /* Фон с зелёными точками */
-  body::before {
+  /* Фоновая сетка */
+  .page::before {
     content: '';
-    position: fixed;
+    position: absolute;
     inset: 0;
     background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
     background-size: 30px 30px;
     pointer-events: none;
   }
 
-  /* Пепе гифка без белого фона */
+  /* ===== СТРАНИЦА 1 - ПЕПЕ ===== */
   .pepe-wrap {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-
-  .pepe-img {
-    width: 280px;
-    height: 280px;
-    object-fit: contain;
-    /* Убираем белый фон через mix-blend-mode */
-    mix-blend-mode: screen;
-    filter: hue-rotate(0deg) saturate(1.2);
-  }
-
-  /* Зелёное свечение */
   .pepe-glow {
     position: absolute;
-    width: 260px;
-    height: 260px;
+    width: 260px; height: 260px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
     animation: pulse 2s ease-in-out infinite;
     pointer-events: none;
   }
-
   @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
+    0%,100% { transform: scale(1); opacity: 0.5; }
     50% { transform: scale(1.1); opacity: 1; }
   }
-
-  /* Юзернейм */
+  .pepe-img {
+    width: 280px; height: 280px;
+    object-fit: contain;
+  }
   .username {
-    margin-top: 30px;
+    margin-top: 25px;
     color: #2d7a2d;
     font-size: 18px;
     letter-spacing: 3px;
+    font-family: monospace;
     text-shadow: 0 0 10px rgba(45,122,45,0.8);
-    animation: blink 3s ease-in-out infinite;
   }
-
-  @keyframes blink {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; text-shadow: 0 0 20px rgba(45,200,45,0.9); }
-  }
-
-  /* Декор линии */
   .line {
-    width: 200px;
-    height: 1px;
+    width: 200px; height: 1px;
     background: linear-gradient(90deg, transparent, #2d7a2d, transparent);
-    margin: 15px 0;
+    margin: 12px 0;
     opacity: 0.6;
   }
+  .swipe-hint {
+    position: absolute;
+    bottom: 25px;
+    color: rgba(45,122,45,0.5);
+    font-family: monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    animation: bounce 2s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(6px); opacity: 1; }
+  }
+
+  /* ===== СТРАНИЦА 2 - СКЕЛЕТ ===== */
+  #page2 { background: #050a05; }
+
+  .camera-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    height: 70vh;
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* зеркало */
+    border-radius: 12px;
+    opacity: 0.6;
+  }
+
+  #canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+    border-radius: 12px;
+  }
+
+  .cam-label {
+    color: #2d7a2d;
+    font-family: monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+
+  .status {
+    margin-top: 12px;
+    color: #2d7a2d;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+  }
+
+  #start-btn {
+    margin-top: 15px;
+    background: transparent;
+    border: 1px solid #2d7a2d;
+    color: #2d7a2d;
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    padding: 10px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #start-btn:hover { background: rgba(45,122,45,0.1); }
 </style>
 </head>
 <body>
 
-<div class="pepe-wrap">
-  <div class="pepe-glow"></div>
-  <img class="pepe-img"
-    src="https://i.ibb.co/WW50MJxt/pepe.gif"
-    alt="Pepe"
-  />
+<div class="pages">
+
+  <!-- СТРАНИЦА 1: ПЕПЕ -->
+  <div class="page" id="page1">
+    <div class="pepe-wrap">
+      <div class="pepe-glow"></div>
+      <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+    </div>
+    <div class="line"></div>
+    <div class="username">@libappso</div>
+    <div class="swipe-hint">▼ свайп вниз</div>
+  </div>
+
+  <!-- СТРАНИЦА 2: СКЕЛЕТ -->
+  <div class="page" id="page2">
+    <div class="cam-label">⬡ POSE DETECTION ⬡</div>
+    <div class="camera-container">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="status" id="status">Нажми кнопку чтобы начать</div>
+    <button id="start-btn" onclick="startCamera()">▶ ЗАПУСТИТЬ</button>
+  </div>
+
 </div>
 
-<div class="line"></div>
-<div class="username">@libappso</div>
+<!-- MediaPipe Pose -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
 <script>
-  const tg = window.Telegram?.WebApp;
-  if (tg) tg.expand();
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
+
+const video   = document.getElementById('video');
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const startBtn = document.getElementById('start-btn');
+
+let poseDetector = null;
+let cameraStarted = false;
+
+function onResults(results) {
+  canvas.width  = video.videoWidth  || canvas.offsetWidth;
+  canvas.height = video.videoHeight || canvas.offsetHeight;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (results.poseLandmarks) {
+    // Рисуем соединения скелета
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+      color: '#00ff44',
+      lineWidth: 2
+    });
+    // Рисуем точки суставов
+    drawLandmarks(ctx, results.poseLandmarks, {
+      color: '#00ff44',
+      fillColor: '#003300',
+      lineWidth: 1,
+      radius: 4
+    });
+    statusEl.textContent = '✓ ЧЕЛОВЕК ОБНАРУЖЕН';
+    statusEl.style.color = '#00ff44';
+  } else {
+    statusEl.textContent = '⟳ ПОИСК ЧЕЛОВЕКА...';
+    statusEl.style.color = 'rgba(45,122,45,0.6)';
+  }
+}
+
+async function startCamera() {
+  if (cameraStarted) return;
+  cameraStarted = true;
+  startBtn.style.display = 'none';
+  statusEl.textContent = '⟳ ЗАГРУЗКА МОДЕЛИ...';
+
+  try {
+    // Запрос камеры
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 640, height: 480 }
+    });
+    video.srcObject = stream;
+
+    // Инициализация MediaPipe Pose
+    poseDetector = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    poseDetector.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    poseDetector.onResults(onResults);
+
+    // Запускаем камеру через MediaPipe Camera
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await poseDetector.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    camera.start();
+    statusEl.textContent = '⟳ ПОИСК ЧЕЛОВЕКА...';
+
+  } catch (err) {
+    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+    statusEl.style.color = '#ff4444';
+    startBtn.style.display = 'block';
+    startBtn.textContent = '↺ ПОВТОРИТЬ';
+    cameraStarted = false;
+  }
+}
 </script>
 </body>
 </html>
