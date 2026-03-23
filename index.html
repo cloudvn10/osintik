@@ -54,9 +54,8 @@
   #page2 { background:#050a05; }
   .cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; margin-bottom:10px; opacity:.7; }
   .camera-container { position:relative; width:100%; max-width:420px; height:72vh; }
-  /* ТУТ УБРАНА ИНВЕРСИЯ */
-  #video { width:100%; height:100%; object-fit:cover; border-radius:10px; opacity:.55; }
-  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; }
+  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); border-radius:10px; opacity:.55; }
+  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; transform:scaleX(-1); }
   .status { margin-top:10px; color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:2px; opacity:.7; }
   #start-btn {
     margin-top:14px; background:transparent;
@@ -69,6 +68,7 @@
 <body>
 <div class="pages">
 
+  <!-- PAGE 1 -->
   <div class="page">
     <div class="pepe-wrap">
       <div class="pepe-glow"></div>
@@ -79,6 +79,7 @@
     <div class="swipe-hint">▼ свайп вниз</div>
   </div>
 
+  <!-- PAGE 2 -->
   <div class="page" id="page2">
     <div class="cam-label">⬡ SKELETON TRACKER ⬡</div>
     <div class="camera-container">
@@ -110,10 +111,12 @@ let poseLandmarks  = null;
 let handsLandmarks = [];
 let started = false;
 
+// --- Pose ---
 const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
 pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 pose.onResults(r => { poseLandmarks = r.poseLandmarks || null; });
 
+// --- Hands ---
 const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
 hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 hands.onResults(r => { handsLandmarks = r.multiHandLandmarks || []; });
@@ -124,8 +127,10 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (poseLandmarks) {
-    drawConnectors(ctx, poseLandmarks, POSE_CONNECTIONS, { color: '#00ff44', lineWidth: 2 });
-    drawLandmarks(ctx, poseLandmarks, { color: '#00ff44', fillColor: '#003300', lineWidth: 1, radius: 5 });
+    drawConnectors(ctx, poseLandmarks, POSE_CONNECTIONS,
+      { color: '#00ff44', lineWidth: 2 });
+    drawLandmarks(ctx, poseLandmarks,
+      { color: '#00ff44', fillColor: '#003300', lineWidth: 1, radius: 5 });
     statusEl.textContent = '✓ ОБНАРУЖЕН';
     statusEl.style.color = '#00ff44';
   } else {
@@ -134,8 +139,10 @@ function draw() {
   }
 
   for (const h of handsLandmarks) {
-    drawConnectors(ctx, h, HAND_CONNECTIONS, { color: '#00eeff', lineWidth: 2 });
-    drawLandmarks(ctx, h, { color: '#00eeff', fillColor: '#003333', lineWidth: 1, radius: 3 });
+    drawConnectors(ctx, h, HAND_CONNECTIONS,
+      { color: '#00eeff', lineWidth: 2 });
+    drawLandmarks(ctx, h,
+      { color: '#00eeff', fillColor: '#003333', lineWidth: 1, radius: 3 });
   }
 }
 
@@ -146,9 +153,8 @@ async function startCam() {
   statusEl.textContent = '⟳ ЗАГРУЗКА...';
 
   try {
-    // ТУТ ВКЛЮЧЕНА ЗАДНЯЯ КАМЕРА
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
     });
     video.srcObject = stream;
 
@@ -163,21 +169,10 @@ async function startCam() {
     camera.start();
 
   } catch(e) {
-    // Если на ПК нет задней камеры, пробуем любую доступную
-    try {
-        const streamAlt = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = streamAlt;
-        const cameraAlt = new Camera(video, {
-            onFrame: async () => { await pose.send({ image: video }); await hands.send({ image: video }); draw(); },
-            width: 640, height: 480
-        });
-        cameraAlt.start();
-    } catch(err) {
-        statusEl.textContent = '✗ ОШИБКА КАМЕРЫ';
-        statusEl.style.color = '#ff4444';
-        startBtn.style.display = 'block';
-        started = false;
-    }
+    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+    statusEl.style.color = '#ff4444';
+    startBtn.style.display = 'block';
+    started = false;
   }
 }
 </script>
