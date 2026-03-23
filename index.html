@@ -3,343 +3,206 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pepe App</title>
+<title>Pepe Skeleton Pro</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-html,body { height:100%; overflow:hidden; background:#0a0f0a; font-family:monospace; }
-.pages { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; }
+html,body { height:100%; overflow:hidden; background:#0a0f0a; font-family:monospace; color: #2d7a2d; }
+.pages { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; -webkit-overflow-scrolling: touch; }
 .pages::-webkit-scrollbar { display:none; }
 .page { height:100vh; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
-.page::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(34,85,34,.15) 1px,transparent 1px); background-size:30px 30px; pointer-events:none; }
 
-/* PAGE 1 */
-.pepe-wrap { position:relative; }
-.pepe-glow { position:absolute; width:260px; height:260px; border-radius:50%; background:radial-gradient(circle,rgba(34,120,34,.25) 0%,transparent 70%); animation:pulse 2s ease-in-out infinite; pointer-events:none; }
-@keyframes pulse { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.1);opacity:1} }
-.pepe-img { width:280px; height:280px; object-fit:contain; }
-.line { width:200px; height:1px; background:linear-gradient(90deg,transparent,#2d7a2d,transparent); margin:12px 0; opacity:.6; }
-.username { color:#2d7a2d; font-size:18px; letter-spacing:3px; text-shadow:0 0 10px rgba(45,122,45,.8); }
-.swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
-@keyframes bounce { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(6px);opacity:1} }
+/* ДИЗАЙН ПЕРВОЙ СТРАНИЦЫ */
+.pepe-wrap { position:relative; margin-bottom: 20px; }
+.pepe-glow { position:absolute; inset: -20px; border-radius:50%; background:radial-gradient(circle,rgba(34,120,34,0.3) 0%,transparent 70%); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.15);opacity:0.8} }
+.pepe-img { width:240px; height:240px; object-fit:contain; filter: drop-shadow(0 0 10px #2d7a2d); }
+.username { font-size:18px; letter-spacing:4px; text-shadow:0 0 10px #2d7a2d; }
+.swipe-hint { position:absolute; bottom:30px; opacity:0.6; font-size:10px; animation:bounce 2s infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(10px)} }
 
-/* PAGE 2 */
-#page2 { background:#050a05; justify-content:flex-start; padding-top:12px; }
-.cam-label { color:#2d7a2d; font-size:10px; letter-spacing:4px; margin-bottom:6px; opacity:.8; }
+/* ВТОРАЯ СТРАНИЦА (СКЕЛЕТ) */
+#page2 { background:#050a05; justify-content: space-between; padding: 15px 0; }
+.cam-label { font-size:10px; letter-spacing:3px; text-align: center; }
+.cam-wrap { position:relative; width:94%; aspect-ratio: 3/4; background: #000; border: 1px solid rgba(0,255,70,0.1); border-radius: 15px; overflow: hidden; }
+#video { display: none; }
+#canvas { width:100%; height:100%; object-fit: cover; }
 
-/* Контейнер камеры — видео скрыто, рисуем только на canvas */
-.cam-wrap { position:relative; width:100%; max-width:440px; flex:1; max-height:72vh; }
-#video { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
-#canvas { width:100%; height:100%; border-radius:12px; display:block; }
+.controls-ui { width: 94%; display: flex; flex-direction: column; gap: 10px; }
+.filters { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+.fbtn { background:rgba(0,255,70,0.05); border:1px solid rgba(0,255,70,0.2); color:rgba(0,255,70,0.5); font-size:9px; padding:6px 12px; border-radius:4px; cursor:pointer; }
+.fbtn.on { background:rgba(0,255,70,0.15); border-color:#00ff44; color:#00ff44; }
 
-/* Фильтры */
-.filters { display:flex; gap:6px; padding:8px 10px; flex-wrap:wrap; justify-content:center; max-width:440px; }
-.fbtn { background:rgba(0,255,70,.06); border:1px solid rgba(0,255,70,.2); color:rgba(0,255,70,.45); font-family:monospace; font-size:10px; letter-spacing:2px; padding:5px 10px; border-radius:5px; cursor:pointer; transition:all .15s; }
-.fbtn.on { background:rgba(0,255,70,.16); border-color:#00ff44; color:#00ff44; }
+.stats { display:flex; gap:8px; }
+.stat { background:rgba(0,255,70,0.03); border:1px solid rgba(0,255,70,0.1); border-radius:8px; padding:8px; flex:1; text-align:center; }
+.stat .v { font-size:18px; font-weight:bold; color:#00ff44; }
+.stat .l { font-size:8px; opacity:0.5; margin-top:3px; }
 
-/* Статы */
-.stats { display:flex; gap:8px; padding:0 10px 10px; max-width:440px; width:100%; }
-.stat { background:rgba(0,255,70,.06); border:1px solid rgba(0,255,70,.15); border-radius:8px; padding:5px 0; text-align:center; flex:1; }
-.stat .v { font-size:16px; font-weight:700; color:#00ff44; }
-.stat .l { font-size:8px; letter-spacing:2px; color:rgba(0,255,70,.4); }
-
-#start-btn { margin:8px; background:transparent; border:1px solid #2d7a2d; color:#2d7a2d; font-family:monospace; font-size:13px; letter-spacing:3px; padding:9px 28px; border-radius:6px; cursor:pointer; }
+#start-btn { width: 94%; background:#2d7a2d; color:#000; border:none; font-family:inherit; font-weight:bold; padding:15px; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 <body>
+
 <div class="pages">
-
-<!-- PAGE 1 -->
-<div class="page">
-  <div class="pepe-wrap">
-    <div class="pepe-glow"></div>
-    <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+  <div class="page">
+    <div class="pepe-wrap">
+      <div class="pepe-glow"></div>
+      <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+    </div>
+    <div class="username">@LIBAPPS_OSINT</div>
+    <div class="swipe-hint">▼ SWIPE DOWN</div>
   </div>
-  <div class="line"></div>
-  <div class="username">@libappso</div>
-  <div class="swipe-hint">▼ свайп вниз</div>
+
+  <div class="page" id="page2">
+    <div class="cam-label">SKELETON_OSINT_TRACKER_v2.0</div>
+    
+    <div class="cam-wrap">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls-ui">
+      <div class="stats">
+        <div class="stat"><div class="v" id="s-h">--</div><div class="l">HEIGHT</div></div>
+        <div class="stat"><div class="v" id="s-st">OFF</div><div class="l">STATUS</div></div>
+        <div class="stat"><div class="v" id="s-fps">0</div><div class="l">FPS</div></div>
+      </div>
+
+      <div class="filters">
+        <button class="fbtn on" id="f-body" onclick="tog('body')">BODY</button>
+        <button class="fbtn on" id="f-hands" onclick="tog('hands')">HANDS</button>
+        <button class="fbtn on" id="f-face" onclick="tog('face')">FACE</button>
+        <button class="fbtn on" id="f-cam" onclick="tog('cam')">CAM</button>
+      </div>
+      
+      <button id="start-btn" onclick="initHolistic()">▶ INITIALIZE SYSTEM</button>
+    </div>
+  </div>
 </div>
-
-<!-- PAGE 2 -->
-<div class="page" id="page2">
-  <div class="cam-label">⬡ SKELETON TRACKER ⬡</div>
-  <div class="cam-wrap">
-    <video id="video" playsinline autoplay muted></video>
-    <canvas id="canvas"></canvas>
-  </div>
-  <div class="filters">
-    <button class="fbtn on" id="f-body"   onclick="tog('body')">ТЕЛО</button>
-    <button class="fbtn on" id="f-hands"  onclick="tog('hands')">РУКИ</button>
-    <button class="fbtn on" id="f-skull"  onclick="tog('skull')">ЧЕРЕП</button>
-    <button class="fbtn on" id="f-height" onclick="tog('height')">РОСТ</button>
-    <button class="fbtn on" id="f-cam"    onclick="tog('cam')">КАМЕРА</button>
-  </div>
-  <div class="stats">
-    <div class="stat"><div class="v" id="s-h">--</div><div class="l">РОСТ см</div></div>
-    <div class="stat"><div class="v" id="s-sh">--</div><div class="l">ПЛЕЧИ см</div></div>
-    <div class="stat"><div class="v" id="s-st">--</div><div class="l">СТАТУС</div></div>
-  </div>
-  <button id="start-btn" onclick="startCam()">▶ ЗАПУСТИТЬ</button>
-</div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
 <script>
-const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
-
-const video  = document.getElementById('video');
+const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-const ctx    = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 
-const F = { body:true, hands:true, skull:true, height:true, cam:true };
+let F = { body:true, hands:true, face:true, cam:true };
 function tog(k) {
   F[k] = !F[k];
   document.getElementById('f-'+k).classList.toggle('on', F[k]);
 }
 
-let poseLm=null, handsLm=[], faceLm=null, started=false;
-let hHist=[], frameCount=0;
+let lastTime = 0;
+let started = false;
 
-// Детальные точки черепа (контур + скулы + нос + глаза + рот)
-const SKULL_OUTLINE = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10];
-const LEFT_EYE     = [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246,33];
-const RIGHT_EYE    = [362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398,362];
-const NOSE_BRIDGE  = [168,6,197,195,5];
-const NOSE_TIP     = [4,1,19,94,2];
-const LIPS_OUTER   = [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146,61];
-const LEFT_BROW    = [70,63,105,66,107,55,65,52,53,46];
-const RIGHT_BROW   = [300,293,334,296,336,285,295,282,283,276];
-const LEFT_EAR     = [234,93,132,58,172,136,150,149,176,148,152];
-const RIGHT_EAR    = [454,323,361,288,397,365,379,378,400,377,152];
+// Инициализация Holistic
+const holistic = new Holistic({locateFile: (file) => {
+  return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+}});
 
-// Pose
-const pose = new Pose({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
-pose.setOptions({ modelComplexity:2, smoothLandmarks:true, enableSegmentation:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-pose.onResults(r=>{ poseLm = r.poseLandmarks||null; });
+holistic.setOptions({
+  modelComplexity: 0, // 0 - САМЫЙ БЫСТРЫЙ (для мобилок)
+  smoothLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
 
-// Hands
-const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
-hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-hands.onResults(r=>{ handsLm = r.multiHandLandmarks||[]; });
+holistic.onResults(onResults);
 
-// Face
-const face = new FaceMesh({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${f}` });
-face.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-face.onResults(r=>{ faceLm = r.multiFaceLandmarks?.[0]||null; });
+function onResults(r) {
+  // Расчет FPS
+  const now = performance.now();
+  const fps = Math.round(1000 / (now - lastTime));
+  lastTime = now;
+  document.getElementById('s-fps').innerText = fps;
+  document.getElementById('s-st').innerText = "LIVE";
 
-// Helpers
-function line(pts, W, H, color, lw, alpha) {
-  if (!pts||pts.length<2) return;
+  const W = canvas.width = 480; // Пониженное разрешение для скорости
+  const H = canvas.height = 640;
+  
   ctx.save();
-  ctx.globalAlpha = alpha||1;
-  ctx.strokeStyle = color;
-  ctx.lineWidth   = lw||1.5;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-  ctx.shadowBlur  = 6;
-  ctx.shadowColor = color;
-  ctx.beginPath();
-  pts.forEach((i,idx)=>{
-    const p = Array.isArray(i) ? i : (faceLm?.[i]);
-    if(!p) return;
-    const x = p.x*W, y = p.y*H;
-    idx===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-  ctx.restore();
-}
-
-function dot(x,y,r,color,glow) {
-  ctx.save();
-  if(glow){ctx.shadowBlur=10;ctx.shadowColor=color;}
-  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=color;ctx.fill();
-  ctx.restore();
-}
-
-function dist(a,b,W,H){ return Math.hypot((a.x-b.x)*W,(a.y-b.y)*H); }
-
-function drawFacePart(indices, W, H, color, lw, alpha) {
-  if(!faceLm) return;
-  const pts = indices.map(i=>faceLm[i]).filter(Boolean);
-  if(pts.length<2) return;
-  ctx.save();
-  ctx.globalAlpha=alpha||1;
-  ctx.strokeStyle=color; ctx.lineWidth=lw||1.5;
-  ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.shadowBlur=5; ctx.shadowColor=color;
-  ctx.beginPath();
-  pts.forEach((p,idx)=>{ idx===0?ctx.moveTo(p.x*W,p.y*H):ctx.lineTo(p.x*W,p.y*H); });
-  ctx.stroke(); ctx.restore();
-}
-
-function draw() {
-  const W = canvas.width  = video.videoWidth  || canvas.offsetWidth;
-  const H = canvas.height = video.videoHeight || canvas.offsetHeight;
   ctx.clearRect(0,0,W,H);
+  
+  // Зеркальное отображение
+  ctx.translate(W, 0);
+  ctx.scale(-1, 1);
 
-  // Зеркальный флип
-  ctx.save();
-  ctx.translate(W,0); ctx.scale(-1,1);
-
-  // Камера фон
-  if(F.cam && video.readyState>=2) {
-    ctx.save(); ctx.globalAlpha=0.55; ctx.drawImage(video,0,0,W,H); ctx.restore();
+  // 1. Отрисовка камеры (фон)
+  if(F.cam) {
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(r.image, 0, 0, W, H);
+    ctx.globalAlpha = 1.0;
   }
 
-  // ТЕЛО
-  if(F.body && poseLm) {
-    // Соединения с цветовой дифференциацией
-    POSE_CONNECTIONS.forEach(([a,b])=>{
-      const pa=poseLm[a],pb=poseLm[b];
-      if(!pa||!pb||pa.visibility<0.35||pb.visibility<0.35) return;
-      let c='#00ff44';
-      if((a>=11&&a<=16)||(b>=11&&b<=16)) c='#44ff88'; // руки
-      if((a>=23&&a<=32)||(b>=23&&b<=32)) c='#00ccff'; // ноги
-      if((a>=0&&a<=10)||(b>=0&&b<=10))   c='#ffffff'; // голова
-      ctx.save();
-      ctx.strokeStyle=c; ctx.lineWidth=2.5; ctx.lineCap='round';
-      ctx.shadowBlur=8; ctx.shadowColor=c;
-      ctx.beginPath(); ctx.moveTo(pa.x*W,pa.y*H); ctx.lineTo(pb.x*W,pb.y*H); ctx.stroke();
-      ctx.restore();
-    });
-
-    // Точки суставов
-    poseLm.forEach((lm,i)=>{
-      if(lm.visibility<0.35) return;
-      let c='#00ff44',r=4;
-      if(i===11||i===12){c='#ffff00';r=7;}       // плечи
-      if(i===13||i===14){c='#44ff88';r=5;}       // локти
-      if(i===15||i===16){c='#00ffcc';r=5;}       // запястья
-      if(i===23||i===24){c='#00ccff';r=6;}       // бёдра
-      if(i===25||i===26){c='#0099ff';r=5;}       // колени
-      if(i===27||i===28){c='#0066ff';r=4;}       // лодыжки
-      if(i===29||i===30){c='#0044cc';r=3;}       // пятки
-      if(i===31||i===32){c='#0044cc';r=3;}       // носки
-      dot(lm.x*W,lm.y*H,r,c,true);
-    });
-
-    // Плечи — пунктир
-    const ls=poseLm[11],rs=poseLm[12];
-    if(ls&&rs&&ls.visibility>0.4&&rs.visibility>0.4){
-      ctx.save(); ctx.setLineDash([5,5]);
-      ctx.strokeStyle='rgba(255,255,0,.5)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(ls.x*W,ls.y*H); ctx.lineTo(rs.x*W,rs.y*H); ctx.stroke();
-      ctx.setLineDash([]);
-      const scm=Math.round(dist(ls,rs,W,H)*1.75);
-      if(scm>10&&scm<100) document.getElementById('s-sh').textContent=scm;
-      ctx.restore();
+  // 2. Отрисовка тела (Pose)
+  if(F.body && r.poseLandmarks) {
+    drawConnectors(ctx, r.poseLandmarks, POSE_CONNECTIONS, {color: '#00ff44', lineWidth: 2});
+    // Рост (примерный расчет)
+    const nose = r.poseLandmarks[0];
+    const heel = r.poseLandmarks[29] || r.poseLandmarks[30];
+    if(nose && heel) {
+        const hPx = Math.abs(heel.y - nose.y);
+        document.getElementById('s-h').innerText = Math.round(hPx * 180 + 20); // Калибровка
     }
-
-    // Рост
-    if(F.height){
-      const nose=poseLm[0], lh=poseLm[31], rh=poseLm[32];
-      if(nose&&(lh||rh)){
-        const footY=Math.max(lh?.y||0,rh?.y||0);
-        const headY=nose.y-Math.abs((poseLm[7]?.y||nose.y)-nose.y)*1.5;
-        const px=Math.abs(footY-headY)*H;
-        const cm=Math.round(px*2.05);
-        if(cm>100&&cm<230){ hHist.push(cm); if(hHist.length>15)hHist.shift(); }
-        if(hHist.length){
-          const avg=Math.round(hHist.reduce((a,b)=>a+b)/hHist.length);
-          document.getElementById('s-h').textContent=avg;
-        }
-        ctx.save(); ctx.setLineDash([3,4]);
-        ctx.strokeStyle='rgba(255,140,0,.4)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(nose.x*W,headY*H); ctx.lineTo(nose.x*W,footY*H); ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    document.getElementById('s-st').textContent='✓ OK';
-    document.getElementById('s-st').style.color='#00ff44';
-  } else if(!poseLm){
-    document.getElementById('s-st').textContent='...';
-    document.getElementById('s-st').style.color='rgba(0,255,70,.4)';
   }
 
-  // ЧЕРЕП (детальный)
-  if(F.skull && faceLm) {
-    const W2=W,H2=H;
-    // Контур лица
-    drawFacePart(SKULL_OUTLINE,W2,H2,'rgba(0,210,255,.7)',1.5);
-    // Глаза
-    drawFacePart(LEFT_EYE,   W2,H2,'rgba(0,255,180,.8)',1.2);
-    drawFacePart(RIGHT_EYE,  W2,H2,'rgba(0,255,180,.8)',1.2);
-    // Брови
-    drawFacePart(LEFT_BROW,  W2,H2,'rgba(100,200,255,.6)',1);
-    drawFacePart(RIGHT_BROW, W2,H2,'rgba(100,200,255,.6)',1);
-    // Нос
-    drawFacePart(NOSE_BRIDGE,W2,H2,'rgba(0,255,200,.6)',1);
-    drawFacePart(NOSE_TIP,   W2,H2,'rgba(0,255,200,.5)',1);
-    // Рот
-    drawFacePart(LIPS_OUTER, W2,H2,'rgba(255,100,100,.7)',1.2);
-    // Уши
-    drawFacePart(LEFT_EAR,   W2,H2,'rgba(0,200,255,.5)',1);
-    drawFacePart(RIGHT_EAR,  W2,H2,'rgba(0,200,255,.5)',1);
-
-    // Точки ключевых суставов черепа
-    [33,263,1,61,291,199].forEach(i=>{
-      const p=faceLm[i]; if(!p) return;
-      dot(p.x*W,p.y*H,2,'rgba(0,255,200,.6)',false);
-    });
+  // 3. Отрисовка лица (Face)
+  if(F.face && r.faceLandmarks) {
+    drawConnectors(ctx, r.faceLandmarks, FACEMESH_TESSELATION, {color: '#00ff4422', lineWidth: 0.5});
+    drawConnectors(ctx, r.faceLandmarks, FACEMESH_CONTOURS, {color: '#00ff44', lineWidth: 1});
   }
 
-  // РУКИ
+  // 4. Отрисовка рук (Hands)
   if(F.hands) {
-    handsLm.forEach(h=>{
-      HAND_CONNECTIONS.forEach(([a,b])=>{
-        const pa=h[a],pb=h[b]; if(!pa||!pb) return;
-        ctx.save(); ctx.strokeStyle='#00eeff'; ctx.lineWidth=2; ctx.lineCap='round';
-        ctx.shadowBlur=6; ctx.shadowColor='#00eeff';
-        ctx.beginPath(); ctx.moveTo(pa.x*W,pa.y*H); ctx.lineTo(pb.x*W,pb.y*H); ctx.stroke();
-        ctx.restore();
-      });
-      h.forEach((lm,i)=>dot(lm.x*W,lm.y*H,i===0?5:3,'#00eeff',true));
-    });
+    if(r.leftHandLandmarks) drawConnectors(ctx, r.leftHandLandmarks, HAND_CONNECTIONS, {color: '#00ffff', lineWidth: 2});
+    if(r.rightHandLandmarks) drawConnectors(ctx, r.rightHandLandmarks, HAND_CONNECTIONS, {color: '#00ffff', lineWidth: 2});
   }
 
-  ctx.restore(); // конец флипа
+  ctx.restore();
 }
 
-async function startCam() {
+// Запуск камеры
+async function initHolistic() {
   if(started) return;
-  started=true;
-  document.getElementById('start-btn').style.display='none';
-  document.getElementById('s-st').textContent='...';
+  started = true;
+  document.getElementById('start-btn').innerText = "SYSTEM ACTIVE";
+  document.getElementById('start-btn').style.opacity = "0.5";
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}
-    });
-    video.srcObject=stream;
-
-    const camera = new Camera(video, {
-      onFrame: async ()=>{
-        frameCount++;
-        await pose.send({image:video});
-        await hands.send({image:video});
-        // Лицо каждые 2 кадра — экономим
-        if(frameCount%2===0) await face.send({image:video});
-        draw();
-      },
-      width:640, height:480
-    });
-    camera.start();
-  } catch(e) {
-    document.getElementById('s-st').textContent='✗';
-    document.getElementById('s-st').style.color='#ff4444';
-    document.getElementById('start-btn').style.display='block';
-    started=false;
-  }
+  const camera = new Camera(video, {
+    onFrame: async () => {
+      await holistic.send({image: video});
+    },
+    width: 480, height: 640
+  });
+  camera.start();
 }
+
+// Функции отрисовки (упрощенные аналоги MediaPipe для скорости)
+function drawConnectors(ctx, landmarks, connections, style) {
+  if(!landmarks) return;
+  ctx.strokeStyle = style.color;
+  ctx.lineWidth = style.lineWidth;
+  ctx.beginPath();
+  for (const connection of connections) {
+    const from = landmarks[connection[0]];
+    const to = landmarks[connection[1]];
+    if (from && to) {
+      ctx.moveTo(from.x * canvas.width, from.y * canvas.height);
+      ctx.lineTo(to.x * canvas.width, to.y * canvas.height);
+    }
+  }
+  ctx.stroke();
+}
+
+// Константы соединений (MediaPipe встроенные)
+const POSE_CONNECTIONS = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28]];
+const HAND_CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[0,17],[17,18],[18,19],[19,20]];
+// Упрощенные контуры лица
+const FACEMESH_CONTOURS = [[10,338],[338,297],[297,332],[332,284],[284,251],[10,109],[109,67],[67,103],[103,54],[54,21],[152,148],[148,176],[176,149],[149,150],[152,377],[377,400],[400,378],[378,379]];
+const FACEMESH_TESSELATION = [[127,34],[34,139],[139,127]]; // Сильно сокращено для примера (в реальности их сотни)
+
 </script>
 </body>
 </html>
