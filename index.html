@@ -3,206 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pepe Skeleton Pro</title>
+<title>Pepe App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html,body { height:100%; overflow:hidden; background:#0a0f0a; font-family:monospace; color: #2d7a2d; }
-.pages { height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; -webkit-overflow-scrolling: touch; }
-.pages::-webkit-scrollbar { display:none; }
-.page { height:100vh; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a0f0a; }
 
-/* ДИЗАЙН ПЕРВОЙ СТРАНИЦЫ */
-.pepe-wrap { position:relative; margin-bottom: 20px; }
-.pepe-glow { position:absolute; inset: -20px; border-radius:50%; background:radial-gradient(circle,rgba(34,120,34,0.3) 0%,transparent 70%); animation:pulse 2s infinite; }
-@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.15);opacity:0.8} }
-.pepe-img { width:240px; height:240px; object-fit:contain; filter: drop-shadow(0 0 10px #2d7a2d); }
-.username { font-size:18px; letter-spacing:4px; text-shadow:0 0 10px #2d7a2d; }
-.swipe-hint { position:absolute; bottom:30px; opacity:0.6; font-size:10px; animation:bounce 2s infinite; }
-@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(10px)} }
+  .pages {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+  }
+  .pages::-webkit-scrollbar { display: none; }
 
-/* ВТОРАЯ СТРАНИЦА (СКЕЛЕТ) */
-#page2 { background:#050a05; justify-content: space-between; padding: 15px 0; }
-.cam-label { font-size:10px; letter-spacing:3px; text-align: center; }
-.cam-wrap { position:relative; width:94%; aspect-ratio: 3/4; background: #000; border: 1px solid rgba(0,255,70,0.1); border-radius: 15px; overflow: hidden; }
-#video { display: none; }
-#canvas { width:100%; height:100%; object-fit: cover; }
+  .page {
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(34,85,34,0.15) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+  }
 
-.controls-ui { width: 94%; display: flex; flex-direction: column; gap: 10px; }
-.filters { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
-.fbtn { background:rgba(0,255,70,0.05); border:1px solid rgba(0,255,70,0.2); color:rgba(0,255,70,0.5); font-size:9px; padding:6px 12px; border-radius:4px; cursor:pointer; }
-.fbtn.on { background:rgba(0,255,70,0.15); border-color:#00ff44; color:#00ff44; }
+  /* PAGE 1 */
+  .pepe-wrap { position: relative; }
+  .pepe-glow {
+    position: absolute; width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34,120,34,0.25) 0%, transparent 70%);
+    animation: pulse 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.1);opacity:1} }
+  .pepe-img { width: 280px; height: 280px; object-fit: contain; }
+  .line { width:200px; height:1px; background:linear-gradient(90deg,transparent,#2d7a2d,transparent); margin:12px 0; opacity:.6; }
+  .username { color:#2d7a2d; font-size:18px; letter-spacing:3px; font-family:monospace; text-shadow:0 0 10px rgba(45,122,45,.8); }
+  .swipe-hint { position:absolute; bottom:25px; color:rgba(45,122,45,.5); font-family:monospace; font-size:12px; letter-spacing:2px; animation:bounce 2s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(6px);opacity:1} }
 
-.stats { display:flex; gap:8px; }
-.stat { background:rgba(0,255,70,0.03); border:1px solid rgba(0,255,70,0.1); border-radius:8px; padding:8px; flex:1; text-align:center; }
-.stat .v { font-size:18px; font-weight:bold; color:#00ff44; }
-.stat .l { font-size:8px; opacity:0.5; margin-top:3px; }
-
-#start-btn { width: 94%; background:#2d7a2d; color:#000; border:none; font-family:inherit; font-weight:bold; padding:15px; border-radius:8px; cursor:pointer; }
+  /* PAGE 2 */
+  #page2 { background:#050a05; }
+  .cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; margin-bottom:10px; opacity:.7; }
+  .camera-container { position:relative; width:100%; max-width:420px; height:72vh; }
+  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); border-radius:10px; opacity:.55; }
+  #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; transform:scaleX(-1); }
+  .status { margin-top:10px; color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:2px; opacity:.7; }
+  #start-btn {
+    margin-top:14px; background:transparent;
+    border:1px solid #2d7a2d; color:#2d7a2d;
+    font-family:monospace; font-size:13px; letter-spacing:3px;
+    padding:10px 28px; border-radius:6px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
-
 <div class="pages">
+
+  <!-- PAGE 1 -->
   <div class="page">
     <div class="pepe-wrap">
       <div class="pepe-glow"></div>
       <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
     </div>
-    <div class="username">@LIBAPPS_OSINT</div>
-    <div class="swipe-hint">▼ SWIPE DOWN</div>
+    <div class="line"></div>
+    <div class="username">@libappso</div>
+    <div class="swipe-hint">▼ свайп вниз</div>
   </div>
 
+  <!-- PAGE 2 -->
   <div class="page" id="page2">
-    <div class="cam-label">SKELETON_OSINT_TRACKER_v2.0</div>
-    
-    <div class="cam-wrap">
+    <div class="cam-label">⬡ SKELETON TRACKER ⬡</div>
+    <div class="camera-container">
       <video id="video" playsinline autoplay muted></video>
       <canvas id="canvas"></canvas>
     </div>
-
-    <div class="controls-ui">
-      <div class="stats">
-        <div class="stat"><div class="v" id="s-h">--</div><div class="l">HEIGHT</div></div>
-        <div class="stat"><div class="v" id="s-st">OFF</div><div class="l">STATUS</div></div>
-        <div class="stat"><div class="v" id="s-fps">0</div><div class="l">FPS</div></div>
-      </div>
-
-      <div class="filters">
-        <button class="fbtn on" id="f-body" onclick="tog('body')">BODY</button>
-        <button class="fbtn on" id="f-hands" onclick="tog('hands')">HANDS</button>
-        <button class="fbtn on" id="f-face" onclick="tog('face')">FACE</button>
-        <button class="fbtn on" id="f-cam" onclick="tog('cam')">CAM</button>
-      </div>
-      
-      <button id="start-btn" onclick="initHolistic()">▶ INITIALIZE SYSTEM</button>
-    </div>
+    <div class="status" id="status">Нажми чтобы начать</div>
+    <button id="start-btn" onclick="startCam()">▶ ЗАПУСТИТЬ</button>
   </div>
+
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
 
-let F = { body:true, hands:true, face:true, cam:true };
-function tog(k) {
-  F[k] = !F[k];
-  document.getElementById('f-'+k).classList.toggle('on', F[k]);
-}
+const video    = document.getElementById('video');
+const canvas   = document.getElementById('canvas');
+const ctx      = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const startBtn = document.getElementById('start-btn');
 
-let lastTime = 0;
+let poseLandmarks  = null;
+let handsLandmarks = [];
 let started = false;
 
-// Инициализация Holistic
-const holistic = new Holistic({locateFile: (file) => {
-  return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
-}});
+// --- Pose ---
+const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
+pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+pose.onResults(r => { poseLandmarks = r.poseLandmarks || null; });
 
-holistic.setOptions({
-  modelComplexity: 0, // 0 - САМЫЙ БЫСТРЫЙ (для мобилок)
-  smoothLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
+// --- Hands ---
+const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+hands.onResults(r => { handsLandmarks = r.multiHandLandmarks || []; });
 
-holistic.onResults(onResults);
+function draw() {
+  canvas.width  = video.videoWidth  || canvas.offsetWidth;
+  canvas.height = video.videoHeight || canvas.offsetHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function onResults(r) {
-  // Расчет FPS
-  const now = performance.now();
-  const fps = Math.round(1000 / (now - lastTime));
-  lastTime = now;
-  document.getElementById('s-fps').innerText = fps;
-  document.getElementById('s-st').innerText = "LIVE";
-
-  const W = canvas.width = 480; // Пониженное разрешение для скорости
-  const H = canvas.height = 640;
-  
-  ctx.save();
-  ctx.clearRect(0,0,W,H);
-  
-  // Зеркальное отображение
-  ctx.translate(W, 0);
-  ctx.scale(-1, 1);
-
-  // 1. Отрисовка камеры (фон)
-  if(F.cam) {
-    ctx.globalAlpha = 0.4;
-    ctx.drawImage(r.image, 0, 0, W, H);
-    ctx.globalAlpha = 1.0;
+  if (poseLandmarks) {
+    drawConnectors(ctx, poseLandmarks, POSE_CONNECTIONS,
+      { color: '#00ff44', lineWidth: 2 });
+    drawLandmarks(ctx, poseLandmarks,
+      { color: '#00ff44', fillColor: '#003300', lineWidth: 1, radius: 5 });
+    statusEl.textContent = '✓ ОБНАРУЖЕН';
+    statusEl.style.color = '#00ff44';
+  } else {
+    statusEl.textContent = '⟳ ПОИСК...';
+    statusEl.style.color = 'rgba(45,122,45,.6)';
   }
 
-  // 2. Отрисовка тела (Pose)
-  if(F.body && r.poseLandmarks) {
-    drawConnectors(ctx, r.poseLandmarks, POSE_CONNECTIONS, {color: '#00ff44', lineWidth: 2});
-    // Рост (примерный расчет)
-    const nose = r.poseLandmarks[0];
-    const heel = r.poseLandmarks[29] || r.poseLandmarks[30];
-    if(nose && heel) {
-        const hPx = Math.abs(heel.y - nose.y);
-        document.getElementById('s-h').innerText = Math.round(hPx * 180 + 20); // Калибровка
-    }
+  for (const h of handsLandmarks) {
+    drawConnectors(ctx, h, HAND_CONNECTIONS,
+      { color: '#00eeff', lineWidth: 2 });
+    drawLandmarks(ctx, h,
+      { color: '#00eeff', fillColor: '#003333', lineWidth: 1, radius: 3 });
   }
-
-  // 3. Отрисовка лица (Face)
-  if(F.face && r.faceLandmarks) {
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_TESSELATION, {color: '#00ff4422', lineWidth: 0.5});
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_CONTOURS, {color: '#00ff44', lineWidth: 1});
-  }
-
-  // 4. Отрисовка рук (Hands)
-  if(F.hands) {
-    if(r.leftHandLandmarks) drawConnectors(ctx, r.leftHandLandmarks, HAND_CONNECTIONS, {color: '#00ffff', lineWidth: 2});
-    if(r.rightHandLandmarks) drawConnectors(ctx, r.rightHandLandmarks, HAND_CONNECTIONS, {color: '#00ffff', lineWidth: 2});
-  }
-
-  ctx.restore();
 }
 
-// Запуск камеры
-async function initHolistic() {
-  if(started) return;
+async function startCam() {
+  if (started) return;
   started = true;
-  document.getElementById('start-btn').innerText = "SYSTEM ACTIVE";
-  document.getElementById('start-btn').style.opacity = "0.5";
+  startBtn.style.display = 'none';
+  statusEl.textContent = '⟳ ЗАГРУЗКА...';
 
-  const camera = new Camera(video, {
-    onFrame: async () => {
-      await holistic.send({image: video});
-    },
-    width: 480, height: 640
-  });
-  camera.start();
-}
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    video.srcObject = stream;
 
-// Функции отрисовки (упрощенные аналоги MediaPipe для скорости)
-function drawConnectors(ctx, landmarks, connections, style) {
-  if(!landmarks) return;
-  ctx.strokeStyle = style.color;
-  ctx.lineWidth = style.lineWidth;
-  ctx.beginPath();
-  for (const connection of connections) {
-    const from = landmarks[connection[0]];
-    const to = landmarks[connection[1]];
-    if (from && to) {
-      ctx.moveTo(from.x * canvas.width, from.y * canvas.height);
-      ctx.lineTo(to.x * canvas.width, to.y * canvas.height);
-    }
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await pose.send({ image: video });
+        await hands.send({ image: video });
+        draw();
+      },
+      width: 640, height: 480
+    });
+    camera.start();
+
+  } catch(e) {
+    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+    statusEl.style.color = '#ff4444';
+    startBtn.style.display = 'block';
+    started = false;
   }
-  ctx.stroke();
 }
-
-// Константы соединений (MediaPipe встроенные)
-const POSE_CONNECTIONS = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28]];
-const HAND_CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[0,17],[17,18],[18,19],[19,20]];
-// Упрощенные контуры лица
-const FACEMESH_CONTOURS = [[10,338],[338,297],[297,332],[332,284],[284,251],[10,109],[109,67],[67,103],[103,54],[54,21],[152,148],[148,176],[176,149],[149,150],[152,377],[377,400],[400,378],[378,379]];
-const FACEMESH_TESSELATION = [[127,34],[34,139],[139,127]]; // Сильно сокращено для примера (в реальности их сотни)
-
 </script>
 </body>
 </html>
