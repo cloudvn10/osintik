@@ -54,6 +54,7 @@
   #page2 { background:#050a05; }
   .cam-label { color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:3px; margin-bottom:10px; opacity:.7; }
   .camera-container { position:relative; width:100%; max-width:420px; height:72vh; }
+  /* ТУТ УБРАНА ИНВЕРСИЯ */
   #video { width:100%; height:100%; object-fit:cover; border-radius:10px; opacity:.55; }
   #canvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:10px; }
   .status { margin-top:10px; color:#2d7a2d; font-family:monospace; font-size:11px; letter-spacing:2px; opacity:.7; }
@@ -145,8 +146,9 @@ async function startCam() {
   statusEl.textContent = '⟳ ЗАГРУЗКА...';
 
   try {
+    // ТУТ ВКЛЮЧЕНА ЗАДНЯЯ КАМЕРА
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { facingMode: { exact: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } }
     });
     video.srcObject = stream;
 
@@ -161,10 +163,21 @@ async function startCam() {
     camera.start();
 
   } catch(e) {
-    statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
-    statusEl.style.color = '#ff4444';
-    startBtn.style.display = 'block';
-    started = false;
+    // Если на ПК нет задней камеры, пробуем любую доступную
+    try {
+        const streamAlt = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = streamAlt;
+        const cameraAlt = new Camera(video, {
+            onFrame: async () => { await pose.send({ image: video }); await hands.send({ image: video }); draw(); },
+            width: 640, height: 480
+        });
+        cameraAlt.start();
+    } catch(err) {
+        statusEl.textContent = '✗ ОШИБКА КАМЕРЫ';
+        statusEl.style.color = '#ff4444';
+        startBtn.style.display = 'block';
+        started = false;
+    }
   }
 }
 </script>
