@@ -3,170 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pepe Precision Tracker</title>
+    <title>Pepe App Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        :root {
+            --neon-green: #00ff66;
+            --dark-green: #0a1a0a;
+            --cyber-blue: #00eeff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overflow: hidden; background: #000; color: var(--neon-green); font-family: 'Courier New', monospace; }
+
+        .pages {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+        .pages::-webkit-scrollbar { display: none; }
+
+        .page {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px;
+        }
+
+        /* PAGE 1: Intro */
+        .pepe-wrap { position: relative; z-index: 2; }
+        .pepe-glow {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 102, 0.2) 0%, transparent 70%);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:0.3; transform: translate(-50%, -50%) scale(1);} 50%{opacity:0.8; transform: translate(-50%, -50%) scale(1.15);} }
         
-        /* Сетка на фоне */
-        .grid {
-            position: fixed; inset: 0;
-            background-image: linear-gradient(rgba(0,255,0,0.05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0,255,0,0.05) 1px, transparent 1px);
-            background-size: 40px 40px; pointer-events: none;
+        .pepe-img { width: 220px; height: 220px; object-fit: contain; filter: drop-shadow(0 0 15px var(--neon-green)); }
+        .username { margin-top: 20px; font-size: 20px; font-weight: bold; letter-spacing: 5px; text-shadow: 0 0 10px var(--neon-green); }
+        .hint { margin-top: 50px; font-size: 12px; opacity: 0.6; animation: bounce 1.5s infinite; }
+
+        /* PAGE 2: Tracker */
+        #page2 { background: #050505; }
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 3/4;
+            border: 2px solid rgba(0, 255, 102, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.1);
         }
 
-        .container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
-        
-        #video { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; filter: grayscale(1); }
-        #canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
 
-        /* Интерфейс поверх */
-        .hud {
-            position: absolute; top: 20px; left: 20px; z-index: 10;
-            text-shadow: 0 0 10px #0f0; pointer-events: none;
+        /* HUD Overlay */
+        .hud-overlay {
+            position: absolute; inset: 0; pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 3px 100%;
         }
-        .hud-item { margin-bottom: 5px; font-size: 12px; letter-spacing: 1px; }
-        .value { color: #fff; }
+        .scanline {
+            position: absolute; width: 100%; height: 2px;
+            background: rgba(0, 255, 102, 0.2);
+            top: 0; animation: scan 4s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .controls {
-            position: absolute; bottom: 30px; left: 0; width: 100%;
-            display: flex; justify-content: center; gap: 20px; z-index: 10;
+        .controls { margin-top: 20px; text-align: center; }
+        #start-btn {
+            background: var(--neon-green); color: black;
+            border: none; padding: 12px 40px; border-radius: 30px;
+            font-weight: bold; font-family: inherit; cursor: pointer;
+            box-shadow: 0 0 20px var(--neon-green); transition: 0.3s;
         }
-        button {
-            background: rgba(0,20,0,0.8); border: 1px solid #0f0; color: #0f0;
-            padding: 12px 20px; font-family: monospace; cursor: pointer;
-            box-shadow: 0 0 10px rgba(0,255,0,0.3); transition: 0.3s;
-        }
-        button:active { transform: scale(0.9); background: #0f0; color: #000; }
+        #start-btn:active { transform: scale(0.95); opacity: 0.8; }
+        .status-bar { font-size: 10px; margin-top: 10px; letter-spacing: 2px; text-transform: uppercase; }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
     </style>
 </head>
 <body>
-    <div class="grid"></div>
-    <div class="container">
-        <video id="video" playsinline muted></video>
-        <canvas id="canvas"></canvas>
 
-        <div class="hud">
-            <div class="hud-item">STATUS: <span id="st" class="value">IDLE</span></div>
-            <div class="hud-item">FPS: <span id="fps" class="value">0</span></div>
-            <div class="hud-item">EST. HEIGHT: <span id="height" class="value">---</span> cm</div>
-            <div class="hud-item">POS_X: <span id="posx" class="value">0</span></div>
-            <div class="hud-item">POS_Y: <span id="posy" class="value">0</span></div>
+<div class="pages">
+    <div class="page">
+        <div class="pepe-wrap">
+            <div class="pepe-glow"></div>
+            <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe">
         </div>
-
-        <div class="controls">
-            <button id="start-btn" onclick="init()">START SCAN</button>
-            <button onclick="switchCamera()">FLIP CAM</button>
-        </div>
+        <div class="username">@LIBAPPS O</div>
+        <div class="hint">▼ ПРОВЕДИ ВНИЗ</div>
     </div>
 
+    <div class="page" id="page2">
+        <div class="camera-wrapper">
+            <video id="video" playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div class="hud-overlay">
+                <div class="scanline"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn" onclick="startTracking()">INITIATE SYSTEM</button>
+            <div class="status-bar" id="statusText">System: Offline</div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let currentFacingMode = 'user';
-let lastTime = 0;
-let started = false;
-
-// Настройка детектора
-const pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
-pose.setOptions({
-    modelComplexity: 1, // 1 - баланс между 60fps и точностью
-    smoothLandmarks: true,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
-});
-
-pose.onResults(onResults);
-
-function onResults(results) {
-    // Считаем FPS
-    const now = performance.now();
-    const fps = Math.round(1000 / (now - lastTime));
-    lastTime = now;
-    document.getElementById('fps').textContent = fps;
-
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (results.poseLandmarks) {
-        document.getElementById('st').textContent = 'TRACKING';
-        
-        // Рисуем детальный скелет
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF44', lineWidth: 2});
-        drawLandmarks(ctx, results.poseLandmarks, {
-            color: '#FF0000', fillColor: '#00FF44', lineWidth: 1, radius: (data) => {
-                return data.from.visibility > 0.5 ? 4 : 0; // Скрываем невидимые точки
-            }
-        });
-
-        calculateMetrics(results.poseLandmarks);
-    } else {
-        document.getElementById('st').textContent = 'SEARCHING...';
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+        tg.expand();
+        tg.enableClosingConfirmation();
     }
-    ctx.restore();
-}
 
-function calculateMetrics(lm) {
-    // 1. Координаты центра (таз)
-    const centerX = lm[24].x.toFixed(2);
-    const centerY = lm[24].y.toFixed(2);
-    document.getElementById('posx').textContent = centerX;
-    document.getElementById('posy').textContent = centerY;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('statusText');
+    const startBtn = document.getElementById('start-btn');
 
-    // 2. Расчет роста (упрощенная модель)
-    // Измеряем расстояние в "попугаях" камеры между макушкой (0) и пяткой (32)
-    const head = lm[0];
-    const ankle = lm[28];
-    const dist = Math.sqrt(Math.pow(head.x - ankle.x, 2) + Math.pow(head.y - ankle.y, 2));
-    
-    // Коэффициент пересчета (зависит от fov камеры, 1.0 экрана ~ 170-180см)
-    // Это примерная оценка, точность зависит от расстояния до камеры
-    const estHeight = Math.round(dist * 210); 
-    document.getElementById('height').textContent = estHeight;
-}
+    let resultsPose = null;
+    let resultsHands = null;
 
-async function init() {
-    if(started) return;
-    started = true;
-    document.getElementById('start-btn').style.display = 'none';
-    
-    const camera = new Camera(video, {
-        onFrame: async () => {
-            await pose.send({image: video});
-        },
-        width: 1280, height: 720
-    });
-    camera.start();
-}
+    // Initialize Pose
+    const pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
+    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+    pose.onResults(r => { resultsPose = r; });
 
-async function switchCamera() {
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    if (!started) return;
-    
-    // Перезапуск потока с новой камерой
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode }
-    });
-    video.srcObject = stream;
-    
-    // Инверсия канваса только для селфи-камеры
-    canvas.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
-    video.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
-}
+    // Initialize Hands
+    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+    hands.onResults(r => { resultsHands = r; });
 
-// Адаптация размера
-window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
-window.dispatchEvent(new Event('resize'));
+    function drawFrame() {
+        // Sync canvas size to video internal size
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+
+        ctx.save();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Body Skeleton
+        if (resultsPose && resultsPose.poseLandmarks) {
+            drawConnectors(ctx, resultsPose.poseLandmarks, POSE_CONNECTIONS, {color: '#00ff66', lineWidth: 4});
+            drawLandmarks(ctx, resultsPose.poseLandmarks, {color: '#ffffff', fillColor: '#00ff66', lineWidth: 2, radius: 4});
+            statusText.innerText = "Target Locked";
+            statusText.style.color = "#00ff66";
+        }
+
+        // Draw Hand Skeleton
+        if (resultsHands && resultsHands.multiHandLandmarks) {
+            for (const landmarks of resultsHands.multiHandLandmarks) {
+                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#00eeff', lineWidth: 3});
+                drawLandmarks(ctx, landmarks, {color: '#ffffff', fillColor: '#00eeff', lineWidth: 1, radius: 3});
+            }
+        }
+
+        ctx.restore();
+        requestAnimationFrame(drawFrame);
+    }
+
+    async function startTracking() {
+        startBtn.innerText = "LOADING CORE...";
+        startBtn.disabled = true;
+
+        try {
+            const camera = new Camera(video, {
+                onFrame: async () => {
+                    await pose.send({image: video});
+                    await hands.send({image: video});
+                },
+                width: 640,
+                height: 480
+            });
+            
+            await camera.start();
+            startBtn.style.display = 'none';
+            statusText.innerText = "System: Online";
+            requestAnimationFrame(drawFrame);
+        } catch (err) {
+            console.error(err);
+            statusText.innerText = "Error: Camera Denied";
+            startBtn.innerText = "RETRY";
+            startBtn.disabled = false;
+        }
+    }
 </script>
+
 </body>
 </html>
