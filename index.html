@@ -1,196 +1,139 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Object Detector MAX</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-
-<style>
-    body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-    #video { width: 100vw; height: 85vh; object-fit: cover; position: absolute; top: 0; left: 0; }
-    #canvas { width: 100vw; height: 85vh; position: absolute; top: 0; left: 0; z-index: 10; }
-    .ui { position: absolute; bottom: 0; width: 100%; height: 15vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a100a; border-top: 2px solid #2d7a2d; z-index: 20; }
-    .btns { display: flex; gap: 10px; }
-    button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
-    #status { font-size: 12px; margin-bottom: 8px; color: #00ff44; font-weight: bold; }
-    .mirror { transform: scaleX(-1); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Виртуальный блок</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        /* Зеркалим канвас, чтобы было как в зеркале */
+        .output_canvas {
+            transform: scaleX(-1);
+            max-width: 100%;
+            max-height: 100vh;
+        }
+        #loading {
+            position: absolute;
+            color: white;
+            font-family: sans-serif;
+            font-size: 24px;
+        }
+    </style>
 </head>
 <body>
 
-<video id="video" playsinline autoplay muted></video>
-<canvas id="canvas"></canvas>
-
-<div class="ui">
-    <div id="status">ЗАГРУЗКА УЛУЧШЕННОЙ ИИ... (МОЖЕТ ЗАНЯТЬ ВРЕМЯ)</div>
-    <div class="btns">
-        <button id="start-btn" onclick="startApp()" style="display: none;">ЗАПУСТИТЬ</button>
-        <button id="flip-btn" onclick="flipCamera()" style="display: none;">СМЕНИТЬ КАМЕРУ</button>
-    </div>
-</div>
-
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
-
-// Полный словарь всех 80 классов COCO-SSD
-const RU_LABELS = {
-    'person': 'ЧЕЛОВЕК', 'bicycle': 'ВЕЛОСИПЕД', 'car': 'МАШИНА', 'motorcycle': 'МОТОЦИКЛ', 'airplane': 'САМОЛЕТ', 
-    'bus': 'АВТОБУС', 'train': 'ПОЕЗД', 'truck': 'ГРУЗОВИК', 'boat': 'ЛОДКА', 'traffic light': 'СВЕТОФОР', 
-    'fire hydrant': 'ГИДРАНТ', 'stop sign': 'ЗНАК СТОП', 'parking meter': 'ПАРКОМАТ', 'bench': 'СКАМЕЙКА', 
-    'bird': 'ПТИЦА', 'cat': 'КОШКА', 'dog': 'СОБАКА', 'horse': 'ЛОШАДЬ', 'sheep': 'ОВЦА', 'cow': 'КОРОВА', 
-    'elephant': 'СЛОН', 'bear': 'МЕДВЕДЬ', 'zebra': 'ЗЕБРА', 'giraffe': 'ЖИРАФ', 'backpack': 'РЮКЗАК', 
-    'umbrella': 'ЗОНТ', 'handbag': 'СУМКА', 'tie': 'ГАЛСТУК', 'suitcase': 'ЧЕМОДАН', 'frisbee': 'ФРИСБИ', 
-    'skis': 'ЛЫЖИ', 'snowboard': 'СНОУБОРД', 'sports ball': 'МЯЧ', 'kite': 'ВОЗД. ЗМЕЙ', 'baseball bat': 'БИТА', 
-    'baseball glove': 'ПЕРЧАТКА', 'skateboard': 'СКЕЙТБОРД', 'surfboard': 'СЕРФБОРД', 'tennis racket': 'РАКЕТКА', 
-    'bottle': 'БУТЫЛКА', 'wine glass': 'БОКАЛ', 'cup': 'ЧАШКА', 'fork': 'ВИЛКА', 'knife': 'НОЖ', 'spoon': 'ЛОЖКА', 
-    'bowl': 'МИСКА', 'banana': 'БАНАН', 'apple': 'ЯБЛОКО', 'sandwich': 'СЭНДВИЧ', 'orange': 'АПЕЛЬСИН', 
-    'broccoli': 'БРОККОЛИ', 'carrot': 'МОРКОВЬ', 'hot dog': 'ХОТ-ДОГ', 'pizza': 'ПИЦЦА', 'donut': 'ПОНЧИК', 
-    'cake': 'ТОРТ', 'chair': 'СТУЛ', 'couch': 'ДИВАН', 'potted plant': 'ЦВЕТОК', 'bed': 'КРОВАТЬ', 
-    'dining table': 'СТОЛ', 'toilet': 'УНИТАЗ', 'tv': 'ТЕЛЕВИЗОР', 'laptop': 'НОУТБУК', 'mouse': 'МЫШКА', 
-    'remote': 'ПУЛЬТ', 'keyboard': 'КЛАВИАТУРА', 'cell phone': 'ТЕЛЕФОН', 'microwave': 'МИКРОВОЛНОВКА', 
-    'oven': 'ДУХОВКА', 'toaster': 'ТОСТЕР', 'sink': 'РАКОВИНА', 'refrigerator': 'ХОЛОДИЛЬНИК', 'book': 'КНИГА', 
-    'clock': 'ЧАСЫ', 'vase': 'ВАЗА', 'scissors': 'НОЖНИЦЫ', 'teddy bear': 'ИГРУШКА', 'hair drier': 'ФЕН', 
-    'toothbrush': 'ЗУБНАЯ ЩЕТКА'
-};
-
-let model, currentStream;
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-const flipBtn = document.getElementById('flip-btn');
-const startBtn = document.getElementById('start-btn');
-
-let facingMode = "environment"; 
-let lastDetections = []; // Хранилище для сглаживания кадров
-
-async function loadModel() {
-    try {
-        // Загружаем более точную базу mobilenet_v2 вместо lite-версии
-        model = await cocoSsd.load({ base: 'mobilenet_v2' });
-        statusEl.innerText = "ИИ ГОТОВ (МАКСИМАЛЬНАЯ ТОЧНОСТЬ)";
-        startBtn.style.display = "block";
-    } catch (e) {
-        statusEl.innerText = "ОШИБКА ЗАГРУЗКИ МОДЕЛИ";
-    }
-}
-loadModel();
-
-async function startApp() {
-    startBtn.style.display = "none";
-    flipBtn.style.display = "block";
-    await setupCamera();
-    detect();
-}
-
-async function setupCamera() {
-    if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-    }
+    <div id="loading">Загрузка нейросети и камеры... Разреши доступ к камере!</div>
     
-    const constraints = { video: { facingMode: facingMode } };
+    <video class="input_video" style="display: none;"></video>
+    <canvas class="output_canvas" width="1280" height="720"></canvas>
 
-    try {
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = currentStream;
+    <script>
+        const videoElement = document.querySelector('.input_video');
+        const canvasElement = document.querySelector('.output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const loadingText = document.getElementById('loading');
 
-        await new Promise(resolve => {
-            video.onloadedmetadata = () => { video.play(); resolve(); };
+        // Переменные нашего блока
+        let blockX = 640;
+        let blockY = 360;
+        let blockSize = 100;
+        let isPlaced = false;
+        let clickCooldown = 0;
+
+        // Функция, которая вызывается каждый кадр
+        function onResults(results) {
+            // Прячем текст загрузки, когда пошли кадры
+            loadingText.style.display = 'none';
+
+            // Очищаем канвас и рисуем кадр с камеры
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (clickCooldown > 0) clickCooldown--;
+
+            // Если в кадре найдена рука
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                const w = canvasElement.width;
+                const h = canvasElement.height;
+
+                // Рисуем скелет руки
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2, radius: 3});
+
+                // Достаем координаты нужных точек (умножаем на ширину/высоту канваса)
+                const x8 = landmarks[8].x * w, y8 = landmarks[8].y * h;   // Кончик указательного
+                const x6 = landmarks[6].x * w, y6 = landmarks[6].y * h;   // Сустав указательного
+                const x4 = landmarks[4].x * w, y4 = landmarks[4].y * h;   // Кончик большого
+                const x12 = landmarks[12].x * w, y12 = landmarks[12].y * h; // Кончик среднего
+
+                // 1. МАСШТАБ (расстояние между большим и средним пальцем)
+                const ringDist = Math.hypot(x12 - x4, y12 - y4);
+                
+                if (!isPlaced) {
+                    // Ограничиваем размер блока от 30 до 400 пикселей
+                    blockSize = Math.max(30, Math.min(ringDist * 1.5, 400));
+                    // 2. ПЕРЕМЕЩЕНИЕ (блок следует за кончиком указательного пальца)
+                    blockX = x8;
+                    blockY = y8;
+                }
+
+                // 3. КЛИК (указательный палец согнут вниз)
+                if (y8 > y6 && clickCooldown === 0) {
+                    isPlaced = !isPlaced; // Меняем состояние
+                    clickCooldown = 15;   // Задержка
+                }
+            }
+
+            // ОТРИСОВКА БЛОКА
+            const x1 = blockX - blockSize / 2;
+            const y1 = blockY - blockSize / 2;
+
+            // Выбираем цвет: полупрозрачный зеленый в руке, красный - на экране
+            canvasCtx.fillStyle = isPlaced ? 'rgba(255, 0, 0, 0.6)' : 'rgba(0, 255, 0, 0.6)';
+            canvasCtx.fillRect(x1, y1, blockSize, blockSize);
+            
+            // Белая рамка
+            canvasCtx.lineWidth = 4;
+            canvasCtx.strokeStyle = 'white';
+            canvasCtx.strokeRect(x1, y1, blockSize, blockSize);
+
+            canvasCtx.restore();
+        }
+
+        // Настраиваем MediaPipe
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        hands.setOptions({
+            maxNumHands: 1, // Ищем только одну руку
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
         });
+        hands.onResults(onResults);
 
-        if (facingMode === "user") {
-            video.classList.add('mirror');
-            canvas.classList.add('mirror');
-        } else {
-            video.classList.remove('mirror');
-            canvas.classList.remove('mirror');
-        }
-    } catch (err) {
-        statusEl.innerText = "ОШИБКА ДОСТУПА К КАМЕРЕ";
-    }
-}
-
-async function flipCamera() {
-    statusEl.innerText = "ПЕРЕКЛЮЧЕНИЕ...";
-    facingMode = facingMode === "user" ? "environment" : "user";
-    lastDetections = []; // Сбрасываем кэш при смене камеры
-    await setupCamera();
-    statusEl.innerText = facingMode === "user" ? "РЕЖИМ: СЕЛФИ" : "РЕЖИМ: ОСНОВНАЯ";
-}
-
-async function detect() {
-    if (!model) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const predictions = await model.detect(video);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Алгоритм сглаживания (Anti-Flicker)
-    let currentDetections = [];
-    
-    predictions.forEach(p => {
-        if (p.score < 0.50) return; // Снижен порог для лучшего захвата, модель точнее
-        currentDetections.push({ bbox: p.bbox, class: p.class, score: p.score, life: 5 }); 
-    });
-
-    // Обновляем старые детекции
-    lastDetections.forEach(oldDet => {
-        const stillExists = currentDetections.some(newDet => newDet.class === oldDet.class && Math.abs(newDet.bbox[0] - oldDet.bbox[0]) < 50);
-        if (!stillExists && oldDet.life > 0) {
-            oldDet.life -= 1;
-            currentDetections.push(oldDet); // Оставляем объект на экране, если он пропал на долю секунды
-        }
-    });
-
-    lastDetections = currentDetections;
-
-    // Отрисовка
-    currentDetections.forEach(p => {
-        const x = p.bbox[0];
-        const y = p.bbox[1];
-        const w = p.bbox[2];
-        const h = p.bbox[3];
-
-        const label = RU_LABELS[p.class] || p.class.toUpperCase();
-        const scorePercent = Math.round(p.score * 100);
-        const text = `${label} ${scorePercent}%`;
-
-        ctx.strokeStyle = "#00ff44";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, w, h);
-        
-        ctx.save();
-        if (facingMode === "user") {
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            const mirroredX = canvas.width - x - ctx.measureText(text).width - 10;
-            drawLabel(mirroredX, y, text);
-        } else {
-            drawLabel(x, y, text);
-        }
-        ctx.restore();
-    });
-    
-    requestAnimationFrame(detect);
-}
-
-function drawLabel(x, y, text) {
-    ctx.font = "bold 16px monospace";
-    const textWidth = ctx.measureText(text).width;
-    
-    ctx.fillStyle = "#00ff44";
-    ctx.fillRect(x, y > 25 ? y - 25 : y, textWidth + 10, 25);
-    
-    ctx.fillStyle = "#000";
-    ctx.fillText(text, x + 5, y > 25 ? y - 8 : y + 18);
-}
-</script>
+        // Запускаем камеру
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        camera.start();
+    </script>
 </body>
 </html>
