@@ -1,231 +1,141 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Human Tracker 60FPS</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-
-<style>
-    body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-    #container { position: relative; width: 100vw; height: 85vh; overflow: hidden; }
-    #video { width: 100%; height: 100%; object-fit: cover; position: absolute; }
-    #canvas { width: 100%; height: 100%; position: absolute; z-index: 10; }
-    
-    .ui { position: absolute; bottom: 0; width: 100%; height: 15vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a100a; border-top: 2px solid #2d7a2d; z-index: 20; }
-    .btns { display: flex; gap: 10px; }
-    button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
-    button:active { background: #0f0; color: #000; }
-    
-    #status-bar { position: absolute; top: 10px; left: 10px; z-index: 30; background: rgba(0,0,0,0.7); padding: 5px; border-radius: 4px; font-size: 10px; pointer-events: none; }
-    .mirror { transform: scaleX(-1); }
-</style>
+    <meta charset="UTF-8">
+    <title>Advanced AR Hand Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        #canvas-container { position: relative; width: 100vw; height: 100vh; }
+        /* Зеркалим видео и 3D для естественного управления */
+        canvas, video { transform: scaleX(-1); position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #ui {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: #0ff; padding: 15px 25px;
+            border-radius: 30px; border: 1px solid #0ff; pointer-events: none;
+            text-align: center; text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 0 15px #0ff; z-index: 100;
+        }
+    </style>
 </head>
 <body>
 
-<div id="status-bar">Инициализация...</div>
-
-<div id="container">
-    <video id="video" playsinline autoplay muted></video>
-    <canvas id="canvas"></canvas>
-</div>
-
-<div class="ui">
-    <div class="btns">
-        <button id="start-btn" onclick="startApp()">▶ ЗАПУСТИТЬ ТРЕКЕР</button>
-        <button id="flip-btn" onclick="flipCamera()" style="display: none;">🔄 СМЕНИТЬ КАМЕРУ</button>
-    </div>
-</div>
+<div id="ui">ЖЕСТЫ: Кольцо (4-12) - Размер | Щелчок (8) - Поставить</div>
+<video id="input_video" style="display:none"></video>
+<div id="canvas-container"></div>
 
 <script>
-const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
+// --- НАСТРОЙКА THREE.JS ---
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+container.appendChild(renderer.domElement);
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status-bar');
-const flipBtn = document.getElementById('flip-btn');
-const startBtn = document.getElementById('start-btn');
+// Создаем футуристичный куб
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshBasicMaterial({ 
+    color: 0x00ffcc, 
+    wireframe: true, 
+    transparent: true, 
+    opacity: 0.8 
+});
+const cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
 
-let pose, camera;
-let currentStream;
-let facingMode = "environment"; // Начинаем с задней камеры
-let isTrackerStarted = false;
+// Добавим внутренний светящийся блок
+const innerBox = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.8, 0.8),
+    new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.2 })
+);
+cube.add(innerBox);
 
-// FPS калькулятор
-let lastFrameTime = performance.now();
-let fps = 0;
+camera3D.position.z = 5;
 
-// Инициализация MediaPipe Pose (самая легкая модель для скорости)
-function initPose() {
-    pose = new Pose({locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-    }});
-    
-    pose.setOptions({
-        modelComplexity: 0, // 0 = 'lite' (самая быстрая, 60FPS), 1 = 'full'
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-    });
-    
-    pose.onResults(onResults);
-}
+// --- ЛОГИКА ПРИЛОЖЕНИЯ ---
+let isPlaced = false;
+let lastSize = 1;
+let cooldown = 0;
 
-// Запуск приложения
-async function startApp() {
-    if (isTrackerStarted) return;
-    isTrackerStarted = true;
-    startBtn.style.display = "none";
-    
-    statusEl.innerText = "ЗАПУСК КАМЕРЫ...";
-    initPose();
-    await setupCamera();
-    
-    camera = new Camera(video, {
-        onFrame: async () => {
-            // FPS замер
-            const now = performance.now();
-            fps = Math.round(1000 / (now - lastFrameTime));
-            lastFrameTime = now;
-            statusEl.innerText = `FPS: ${fps} | РЕЖИМ: ${facingMode === 'user' ? 'СЕЛФИ' : 'ОСНОВНАЯ'}`;
+function onResults(results) {
+    renderer.render(scene, camera3D);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const hand = results.multiHandLandmarks[0];
+        
+        // Точки (landmarks)
+        const thumb = hand[4];  // Большой
+        const indexTip = hand[8]; // Указательный кончик
+        const indexPip = hand[6]; // Указательный фаланга
+        const middle = hand[12]; // Средний
+
+        // 1. Координаты блока (перевод из 0-1 в координаты Three.js)
+        if (!isPlaced) {
+            // Масштабируем координаты под экран (от -5 до 5 примерно)
+            cube.position.x = (indexTip.x - 0.5) * 10;
+            cube.position.y = -(indexTip.y - 0.5) * 6;
             
-            await pose.send({image: video});
-        },
-        width: 1280, // Широкое разрешение (ideal)
-        height: 720
-    });
-    camera.start();
-    flipBtn.style.display = "block";
-}
-
-// Настройка камеры с принудительным убийством старого потока
-async function setupCamera() {
-    if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-    }
-    
-    const constraints = { 
-        video: { 
-            facingMode: { ideal: facingMode },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-        } 
-    };
-
-    try {
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = currentStream;
-
-        // Зеркалка только для фронталки
-        if (facingMode === "user") {
-            video.classList.add('mirror');
-            canvas.classList.add('mirror');
-        } else {
-            video.classList.remove('mirror');
-            canvas.classList.remove('mirror');
+            // Плавное вращение куба за движением руки
+            cube.rotation.y += 0.05;
+            cube.rotation.x = (indexTip.y - 0.5) * 2;
         }
 
-        return new Promise(resolve => video.onloadedmetadata = resolve);
-    } catch (err) {
-        statusEl.innerText = "❌ ОШИБКА КАМЕРЫ";
-    }
-}
+        // 2. Размер (расстояние между большим и средним)
+        const dist = Math.hypot(thumb.x - middle.x, thumb.y - middle.y);
+        const targetSize = dist * 10;
+        // Сглаживание размера (Lerp)
+        lastSize += (targetSize - lastSize) * 0.2;
+        cube.scale.set(lastSize, lastSize, lastSize);
 
-// Смена камеры
-async function flipCamera() {
-    statusEl.innerText = "ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ...";
-    facingMode = facingMode === "user" ? "environment" : "user";
-    await setupCamera();
-}
-
-// Отрисовка результатов (сердце трекера)
-function onResults(results) {
-    if (!results.poseLandmarks) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-    }
-
-    // Подгоняем размер холста под видео поток
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Убираем зеркальность для текста на фронталке
-    ctx.save();
-    if (facingMode === "user") {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
+        // 3. Детекция клика (Указательный палец)
+        // Если кончик пальца (8) ниже фаланги (6) по оси Y
+        if (indexTip.y > indexPip.y && cooldown === 0) {
+            isPlaced = !isPlaced;
+            cooldown = 25; // Задержка, чтобы не было дребезга
+            
+            // Визуальный эффект клика
+            cube.material.color.setHex(isPlaced ? 0xff0055 : 0x00ffcc);
+            innerBox.material.color.setHex(isPlaced ? 0xff0055 : 0x00ffcc);
+            document.getElementById('ui').innerText = isPlaced ? "ОБЪЕКТ ЗАКРЕПЛЕН" : "ОБЪЕКТ В РУКЕ";
+        }
     }
 
-    // --- 1. Отрисовка скелета ( MediaPipe Drawing Utils) ---
-    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
-                 {color: '#00ff44', lineWidth: 3});
-    drawLandmarks(ctx, results.poseLandmarks,
-                {color: '#ff0000', lineWidth: 1, radius: 2});
-
-    // --- 2. Вычисление прямоугольника (Bounding Box) ---
-    const landmarks = results.poseLandmarks;
-    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-    
-    // Перебираем точки (пропускаем лицо для точности торса)
-    for (let i = 11; i < landmarks.length; i++) { 
-        const lm = landmarks[i];
-        const x = lm.x * canvas.width;
-        const y = lm.y * canvas.height;
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-    }
-
-    // Добавляем отступы
-    const width = maxX - minX;
-    const height = maxY - minY;
-    minX -= width * 0.1; minY -= height * 0.1;
-    maxX += width * 0.1; maxY += height * 0.1;
-
-    // --- 3. Рисуем прямоугольник ---
-    ctx.strokeStyle = '#00ff44';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-
-    // --- 4. Отрисовка данных над головой ---
-    const headLm = landmarks[0]; // Точка носа
-    const dataX = headLm.x * canvas.width;
-    const dataY = (headLm.y * canvas.height) - 40; // Чуть выше головы
-
-    // Расчет данных
-    const centerCoords = `[X:${Math.round(headLm.x * 100)}, Y:${Math.round(headLm.y * 100)}]`;
-    // Простой расчет роста: расстояние от головы до пяток в пикселях холста
-    const heelLm = landmarks[29]; // Пятка
-    const pixelHeight = Math.round(Math.abs(heelLm.y - headLm.y) * canvas.height);
-    const growth = `РОСТ:${pixelHeight}px`;
-    const score = `HUMAN:${Math.round(headLm.visibility * 100)}%`;
-    
-    const textData = `${score} | ${growth} | ${centerCoords}`;
-
-    drawDataLabel(dataX, dataY, textData);
-
-    ctx.restore();
+    if (cooldown > 0) cooldown--;
 }
 
-function drawDataLabel(x, y, text) {
-    ctx.font = "bold 14px monospace";
-    ctx.fillStyle = "#00ff44"; // Плашка
-    const textWidth = ctx.measureText(text).width;
-    ctx.fillRect(x - (textWidth/2) - 5, y - 20, textWidth + 10, 25);
-    
-    ctx.fillStyle = "#000"; // Текст
-    ctx.fillText(text, x - (textWidth/2), y);
-}
+// --- ЗАПУСК MEDIAPIPE ---
+const hands = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.8,
+    minTrackingConfidence: 0.8
+});
+
+hands.onResults(onResults);
+
+const videoElement = document.getElementById('input_video');
+const camera = new Camera(videoElement, {
+    onFrame: async () => {
+        await hands.send({image: videoElement});
+    },
+    width: 1280,
+    height: 720
+});
+camera.start();
+
+// Обработка изменения размера окна
+window.addEventListener('resize', () => {
+    camera3D.aspect = window.innerWidth / window.innerHeight;
+    camera3D.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
