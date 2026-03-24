@@ -2,171 +2,88 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Object Detector</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI Scan</title>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #0a0f0a; font-family: monospace; }
-
-  .pages { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
-  .pages::-webkit-scrollbar { display: none; }
-
-  .page {
-    height: 100vh; scroll-snap-align: start;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    position: relative;
-  }
-
-  /* Стили камеры */
-  .camera-container { position: relative; width: 95%; max-width: 420px; height: 70vh; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #2d7a2d; }
-  #video { width: 100%; height: 100%; object-fit: cover; }
-  #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-  /* Кнопки */
-  .controls { display: flex; gap: 10px; margin-top: 15px; }
-  button {
-    background: transparent; border: 1px solid #2d7a2d; color: #2d7a2d;
-    padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 12px; letter-spacing: 1px;
-  }
-  button:active { background: #2d7a2d; color: #000; }
-
-  .status { margin-top: 10px; color: #00ff44; font-size: 11px; text-transform: uppercase; }
-
-  /* Зеркальное отражение для селфи-камеры (управляется через JS) */
-  .mirror { transform: scaleX(-1); }
+    body { margin: 0; background: #000; color: #0f0; font-family: inset, monospace; overflow: hidden; }
+    #video { width: 100vw; height: 80vh; object-fit: cover; position: absolute; }
+    #canvas { width: 100vw; height: 80vh; position: absolute; z-index: 10; }
+    .ui { position: absolute; bottom: 0; width: 100%; height: 20vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a; border-top: 1px solid #0f0; }
+    button { background: none; border: 1px solid #0f0; color: #0f0; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+    #status { font-size: 10px; margin-bottom: 5px; color: #0f0; opacity: 0.7; }
+    .mirror { transform: scaleX(-1); }
 </style>
 </head>
 <body>
 
-<div class="pages">
-  <div class="page">
-    <div style="color: #2d7a2d; text-align: center;">
-      <h1 style="font-size: 24px; margin-bottom: 10px;">OBJECT AI</h1>
-      <p style="opacity: 0.6;">Свайпни вниз для запуска</p>
-      <div style="margin-top: 20px; font-size: 30px;">▼</div>
-    </div>
-  </div>
+<video id="video" playsinline autoplay muted></video>
+<canvas id="canvas"></canvas>
 
-  <div class="page" id="scanner">
-    <div class="camera-container">
-      <video id="video" playsinline autoplay muted></video>
-      <canvas id="canvas"></canvas>
+<div class="ui">
+    <div id="status">Инициализация ИИ...</div>
+    <div style="display: flex;">
+        <button onclick="startApp()">ПУСК</button>
+        <button id="flip-btn" onclick="flipCamera()" style="display: none;">СМЕНИТЬ КАМЕРУ</button>
     </div>
-
-    <div class="status" id="status">Загрузка нейросети...</div>
-
-    <div class="controls">
-      <button id="start-btn" onclick="initScanner()">▶ ЗАПУСК</button>
-      <button id="switch-btn" onclick="switchCamera()" style="display:none;">🔄 КАМЕРА</button>
-    </div>
-  </div>
 </div>
 
 <script>
-const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
+let model, currentStream, video = document.getElementById('video'), canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d'), status = document.getElementById('status'), flipBtn = document.getElementById('flip-btn'), facingMode = "user";
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-const switchBtn = document.getElementById('switch-btn');
-const startBtn = document.getElementById('start-btn');
-
-let model = null;
-let currentStream = null;
-let facingMode = "user"; // "user" - лицо, "environment" - задняя
-
-// Загрузка модели COCO-SSD
 async function loadModel() {
-    statusEl.textContent = "⚙️ ЗАГРУЗКА МОДЕЛИ...";
+    status.innerText = "ЗАГРУЗКА НЕЙРОСЕТИ...";
     model = await cocoSsd.load();
-    statusEl.textContent = "✅ ГОТОВО К РАБОТЕ";
+    status.innerText = "ИИ ГОТОВ. ЖМИ ПУСК";
 }
 loadModel();
 
-async function initScanner() {
-    startBtn.style.display = 'none';
-    switchBtn.style.display = 'block';
-    await startStream();
-    predict();
+async function startApp() {
+    await setupCamera();
+    flipBtn.style.display = "block";
+    detect();
 }
 
-async function startStream() {
-    if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-    }
+async function setupCamera() {
+    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+    
+    const constraints = { video: { facingMode: facingMode } };
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = currentStream;
 
-    const constraints = {
-        video: { facingMode: facingMode, width: 640, height: 480 }
-    };
-
-    try {
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = currentStream;
-
-        // Включаем зеркалку только для фронталки
-        if (facingMode === "user") {
-            video.classList.add('mirror');
-            canvas.classList.add('mirror');
-        } else {
-            video.classList.remove('mirror');
-            canvas.classList.remove('mirror');
-        }
-
-        return new Promise((resolve) => {
-            video.onloadedmetadata = () => resolve();
-        });
-    } catch (e) {
-        statusEl.textContent = "❌ ОШИБКА КАМЕРЫ";
+    if (facingMode === "user") {
+        video.classList.add('mirror');
+        canvas.classList.add('mirror');
+    } else {
+        video.classList.remove('mirror');
+        canvas.classList.remove('mirror');
     }
 }
 
-// Переключение камеры
-async function switchCamera() {
-    facingMode = (facingMode === "user") ? "environment" : "user";
-    statusEl.textContent = "🔄 СМЕНА КАМЕРЫ...";
-    await startStream();
-    statusEl.textContent = "✅ КАМЕРА СМЕНЕНА";
+async function flipCamera() {
+    facingMode = facingMode === "user" ? "environment" : "user";
+    await setupCamera();
 }
 
-// Распознавание
-async function predict() {
-    if (!model) return;
-
+async function detect() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
+    
     const predictions = await model.detect(video);
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    predictions.forEach(prediction => {
-        const [x, y, width, height] = prediction.bbox;
-        const label = prediction.class;
-        const score = Math.round(prediction.score * 100);
-
-        // Рисуем рамку
-        ctx.strokeStyle = "#00ff44";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
-
-        // Рисуем фон текста
-        ctx.fillStyle = "#00ff44";
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillRect(x, y > 20 ? y - 25 : y, textWidth + 40, 25);
-
-        // Пишем название предмета
-        ctx.fillStyle = "#000";
-        ctx.font = "bold 16px monospace";
-        ctx.fillText(`${label} ${score}%`, x + 5, y > 20 ? y - 7 : y + 18);
+    
+    predictions.forEach(p => {
+        ctx.strokeStyle = "#0f0";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(p.bbox[0], p.bbox[1], p.bbox[2], p.bbox[3]);
+        
+        ctx.fillStyle = "#0f0";
+        ctx.font = "24px Arial";
+        ctx.fillText(p.class.toUpperCase(), p.bbox[0], p.bbox[1] > 20 ? p.bbox[1] - 10 : 20);
     });
-
-    requestAnimationFrame(predict);
+    
+    requestAnimationFrame(detect);
 }
 </script>
 </body>
