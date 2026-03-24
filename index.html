@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AI Object Detector RU</title>
+<title>AI Object Detector MAX</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -16,7 +16,6 @@
     .btns { display: flex; gap: 10px; }
     button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
     #status { font-size: 12px; margin-bottom: 8px; color: #00ff44; font-weight: bold; }
-    /* Зеркалка только для селфи */
     .mirror { transform: scaleX(-1); }
 </style>
 </head>
@@ -26,9 +25,9 @@
 <canvas id="canvas"></canvas>
 
 <div class="ui">
-    <div id="status">ЗАГРУЗКА ИИ...</div>
+    <div id="status">ЗАГРУЗКА УЛУЧШЕННОЙ ИИ... (МОЖЕТ ЗАНЯТЬ ВРЕМЯ)</div>
     <div class="btns">
-        <button id="start-btn" onclick="startApp()">ЗАПУСТИТЬ</button>
+        <button id="start-btn" onclick="startApp()" style="display: none;">ЗАПУСТИТЬ</button>
         <button id="flip-btn" onclick="flipCamera()" style="display: none;">СМЕНИТЬ КАМЕРУ</button>
     </div>
 </div>
@@ -37,14 +36,25 @@
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-// Словарь
+// Полный словарь всех 80 классов COCO-SSD
 const RU_LABELS = {
-    'person': 'ЧЕЛОВЕК', 'chair': 'СТУЛ', 'table': 'СТОЛ', 'bottle': 'БУТЫЛКА',
-    'cup': 'КРУЖКА', 'laptop': 'НОУТБУК', 'mouse': 'МЫШКА', 'keyboard': 'КЛАВИАТУРА',
-    'cell phone': 'ТЕЛЕФОН', 'calculator': 'КАЛЬКУЛЯТОР', 'cookies': 'ПЕЧЕНЬЕ',
-    't-shirt': 'ФУТБОЛКА', 'backpack': 'РЮКЗАК', 'book': 'КНИГА', 'tv': 'ТВ',
-    'remote': 'ПУЛЬТ', 'scissors': 'НОЖНИЦЫ', 'toothbrush': 'ЗУБНАЯ ЩЕТКА',
-    'toilet': 'УНИТАЗ', 'bed': 'КРОВАТЬ', 'couch': 'ДИВАН', 'apple': 'ЯБЛОКО'
+    'person': 'ЧЕЛОВЕК', 'bicycle': 'ВЕЛОСИПЕД', 'car': 'МАШИНА', 'motorcycle': 'МОТОЦИКЛ', 'airplane': 'САМОЛЕТ', 
+    'bus': 'АВТОБУС', 'train': 'ПОЕЗД', 'truck': 'ГРУЗОВИК', 'boat': 'ЛОДКА', 'traffic light': 'СВЕТОФОР', 
+    'fire hydrant': 'ГИДРАНТ', 'stop sign': 'ЗНАК СТОП', 'parking meter': 'ПАРКОМАТ', 'bench': 'СКАМЕЙКА', 
+    'bird': 'ПТИЦА', 'cat': 'КОШКА', 'dog': 'СОБАКА', 'horse': 'ЛОШАДЬ', 'sheep': 'ОВЦА', 'cow': 'КОРОВА', 
+    'elephant': 'СЛОН', 'bear': 'МЕДВЕДЬ', 'zebra': 'ЗЕБРА', 'giraffe': 'ЖИРАФ', 'backpack': 'РЮКЗАК', 
+    'umbrella': 'ЗОНТ', 'handbag': 'СУМКА', 'tie': 'ГАЛСТУК', 'suitcase': 'ЧЕМОДАН', 'frisbee': 'ФРИСБИ', 
+    'skis': 'ЛЫЖИ', 'snowboard': 'СНОУБОРД', 'sports ball': 'МЯЧ', 'kite': 'ВОЗД. ЗМЕЙ', 'baseball bat': 'БИТА', 
+    'baseball glove': 'ПЕРЧАТКА', 'skateboard': 'СКЕЙТБОРД', 'surfboard': 'СЕРФБОРД', 'tennis racket': 'РАКЕТКА', 
+    'bottle': 'БУТЫЛКА', 'wine glass': 'БОКАЛ', 'cup': 'ЧАШКА', 'fork': 'ВИЛКА', 'knife': 'НОЖ', 'spoon': 'ЛОЖКА', 
+    'bowl': 'МИСКА', 'banana': 'БАНАН', 'apple': 'ЯБЛОКО', 'sandwich': 'СЭНДВИЧ', 'orange': 'АПЕЛЬСИН', 
+    'broccoli': 'БРОККОЛИ', 'carrot': 'МОРКОВЬ', 'hot dog': 'ХОТ-ДОГ', 'pizza': 'ПИЦЦА', 'donut': 'ПОНЧИК', 
+    'cake': 'ТОРТ', 'chair': 'СТУЛ', 'couch': 'ДИВАН', 'potted plant': 'ЦВЕТОК', 'bed': 'КРОВАТЬ', 
+    'dining table': 'СТОЛ', 'toilet': 'УНИТАЗ', 'tv': 'ТЕЛЕВИЗОР', 'laptop': 'НОУТБУК', 'mouse': 'МЫШКА', 
+    'remote': 'ПУЛЬТ', 'keyboard': 'КЛАВИАТУРА', 'cell phone': 'ТЕЛЕФОН', 'microwave': 'МИКРОВОЛНОВКА', 
+    'oven': 'ДУХОВКА', 'toaster': 'ТОСТЕР', 'sink': 'РАКОВИНА', 'refrigerator': 'ХОЛОДИЛЬНИК', 'book': 'КНИГА', 
+    'clock': 'ЧАСЫ', 'vase': 'ВАЗА', 'scissors': 'НОЖНИЦЫ', 'teddy bear': 'ИГРУШКА', 'hair drier': 'ФЕН', 
+    'toothbrush': 'ЗУБНАЯ ЩЕТКА'
 };
 
 let model, currentStream;
@@ -55,13 +65,15 @@ const statusEl = document.getElementById('status');
 const flipBtn = document.getElementById('flip-btn');
 const startBtn = document.getElementById('start-btn');
 
-// Начинаем сразу с задней камеры
 let facingMode = "environment"; 
+let lastDetections = []; // Хранилище для сглаживания кадров
 
 async function loadModel() {
     try {
-        model = await cocoSsd.load();
-        statusEl.innerText = "ИИ ГОТОВ";
+        // Загружаем более точную базу mobilenet_v2 вместо lite-версии
+        model = await cocoSsd.load({ base: 'mobilenet_v2' });
+        statusEl.innerText = "ИИ ГОТОВ (МАКСИМАЛЬНАЯ ТОЧНОСТЬ)";
+        startBtn.style.display = "block";
     } catch (e) {
         statusEl.innerText = "ОШИБКА ЗАГРУЗКИ МОДЕЛИ";
     }
@@ -76,26 +88,19 @@ async function startApp() {
 }
 
 async function setupCamera() {
-    // Жестко убиваем старый поток для Telegram WebApp
     if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
         video.srcObject = null;
     }
     
-    const constraints = { 
-        video: { facingMode: facingMode } 
-    };
+    const constraints = { video: { facingMode: facingMode } };
 
     try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
 
-        // Ждем, пока видео реально запустится
         await new Promise(resolve => {
-            video.onloadedmetadata = () => {
-                video.play();
-                resolve();
-            };
+            video.onloadedmetadata = () => { video.play(); resolve(); };
         });
 
         if (facingMode === "user") {
@@ -113,6 +118,7 @@ async function setupCamera() {
 async function flipCamera() {
     statusEl.innerText = "ПЕРЕКЛЮЧЕНИЕ...";
     facingMode = facingMode === "user" ? "environment" : "user";
+    lastDetections = []; // Сбрасываем кэш при смене камеры
     await setupCamera();
     statusEl.innerText = facingMode === "user" ? "РЕЖИМ: СЕЛФИ" : "РЕЖИМ: ОСНОВНАЯ";
 }
@@ -126,28 +132,40 @@ async function detect() {
     const predictions = await model.detect(video);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Алгоритм сглаживания (Anti-Flicker)
+    let currentDetections = [];
+    
     predictions.forEach(p => {
-        const score = p.score;
-        
-        // ФИЛЬТР: Игнорируем всё, в чем ИИ не уверен на 60%
-        if (score < 0.60) return;
+        if (p.score < 0.50) return; // Снижен порог для лучшего захвата, модель точнее
+        currentDetections.push({ bbox: p.bbox, class: p.class, score: p.score, life: 5 }); 
+    });
 
+    // Обновляем старые детекции
+    lastDetections.forEach(oldDet => {
+        const stillExists = currentDetections.some(newDet => newDet.class === oldDet.class && Math.abs(newDet.bbox[0] - oldDet.bbox[0]) < 50);
+        if (!stillExists && oldDet.life > 0) {
+            oldDet.life -= 1;
+            currentDetections.push(oldDet); // Оставляем объект на экране, если он пропал на долю секунды
+        }
+    });
+
+    lastDetections = currentDetections;
+
+    // Отрисовка
+    currentDetections.forEach(p => {
         const x = p.bbox[0];
         const y = p.bbox[1];
         const w = p.bbox[2];
         const h = p.bbox[3];
 
-        const rawLabel = p.class;
-        const label = RU_LABELS[rawLabel] || rawLabel.toUpperCase();
-        const scorePercent = Math.round(score * 100);
+        const label = RU_LABELS[p.class] || p.class.toUpperCase();
+        const scorePercent = Math.round(p.score * 100);
         const text = `${label} ${scorePercent}%`;
 
-        // Рамка
         ctx.strokeStyle = "#00ff44";
         ctx.lineWidth = 4;
         ctx.strokeRect(x, y, w, h);
         
-        // Исправление зеркального текста для фронталки
         ctx.save();
         if (facingMode === "user") {
             ctx.translate(canvas.width, 0);
