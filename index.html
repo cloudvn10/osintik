@@ -2,169 +2,161 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Object Detector RU</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
 <style>
-    body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-    #video { width: 100vw; height: 85vh; object-fit: cover; position: absolute; top: 0; left: 0; }
-    #canvas { width: 100vw; height: 85vh; position: absolute; top: 0; left: 0; z-index: 10; }
-    .ui { position: absolute; bottom: 0; width: 100%; height: 15vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a100a; border-top: 2px solid #2d7a2d; }
-    .btns { display: flex; gap: 10px; }
-    button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; }
-    #status { font-size: 12px; margin-bottom: 8px; color: #00ff44; }
-    .mirror { transform: scaleX(-1); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a0f0a; font-family: monospace; }
+  .pages { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+  .pages::-webkit-scrollbar { display: none; }
+  .page { height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .camera-container { position: relative; width: 95%; max-width: 420px; height: 70vh; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #2d7a2d; }
+  #video { width: 100%; height: 100%; object-fit: cover; }
+  #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .controls { display: flex; gap: 10px; margin-top: 15px; }
+  button { background: transparent; border: 1px solid #00ff44; color: #00ff44; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 12px; letter-spacing: 1px; font-weight: bold; }
+  .status { margin-top: 10px; color: #00ff44; font-size: 11px; text-transform: uppercase; }
+  .mirror { transform: scaleX(-1); }
 </style>
 </head>
 <body>
 
-<video id="video" playsinline autoplay muted></video>
-<canvas id="canvas"></canvas>
-
-<div class="ui">
-    <div id="status">Загрузка ИИ...</div>
-    <div class="btns">
-        <button id="start-btn" onclick="startApp()">ЗАПУСТИТЬ</button>
-        <button id="flip-btn" onclick="flipCamera()" style="display: none;">СМЕНИТЬ КАМЕРУ</button>
+<div class="pages">
+  <div class="page">
+    <div style="color: #2d7a2d; text-align: center;">
+      <h1 style="font-size: 24px; margin-bottom: 10px;">OBJECT AI RU</h1>
+      <p style="opacity: 0.6;">Свайпни вниз для запуска</p>
+      <div style="margin-top: 20px; font-size: 30px;">▼</div>
     </div>
+  </div>
+
+  <div class="page" id="scanner">
+    <div class="camera-container">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="status" id="status">Загрузка нейросети...</div>
+    <div class="controls">
+      <button id="start-btn" onclick="initScanner()">▶ ЗАПУСК</button>
+      <button id="switch-btn" onclick="switchCamera()" style="display:none;">🔄 СМЕНИТЬ КАМЕРУ</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// Словарь перевода (можешь добавлять свои слова сюда)
-const TRANSLATIONS = {
-    "person": "ЧЕЛОВЕК",
-    "chair": "СТУЛ",
-    "bottle": "БУТЫЛКА",
-    "cup": "КРУЖКА",
-    "cell phone": "ТЕЛЕФОН",
-    "laptop": "НОУТБУК",
-    "mouse": "МЫШКА",
-    "keyboard": "КЛАВИАТУРА",
-    "remote": "ПУЛЬТ",
-    "book": "КНИГА",
-    "clock": "ЧАСЫ",
-    "potted plant": "РАСТЕНИЕ",
-    "backpack": "РЮКЗАК",
-    "handbag": "СУМКА",
-    "bottle": "БУТЫЛКА",
-    "tv": "ТЕЛЕВИЗОР",
-    "refrigerator": "ХОЛОДИЛЬНИК",
-    "cup": "ЧАШКА",
-    "fork": "ВИЛКА",
-    "knife": "НОЖ",
-    "spoon": "ЛОЖКА",
-    "bowl": "МИСКА",
-    "apple": "ЯБЛОКО",
-    "banana": "БАНАН",
-    "orange": "АПЕЛЬСИН",
-    "broccoli": "БРОККОЛИ",
-    "carrot": "МОРКОВЬ",
-    "pizza": "ПИЦЦА",
-    "cake": "ТОРТ",
-    "couch": "ДИВАН",
-    "bed": "КРОВАТЬ",
-    "toilet": "УНИТАЗ",
-    "scissors": "НОЖНИЦЫ",
-    "toothbrush": "ЗУБНАЯ ЩЕТКА"
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
+
+// Словарь для перевода объектов
+const RU_LABELS = {
+    'person': 'ЧЕЛОВЕК', 'chair': 'СТУЛ', 'table': 'СТОЛ', 'bottle': 'БУТЫЛКА',
+    'cup': 'КРУЖКА', 'laptop': 'НОУТБУК', 'mouse': 'МЫШКА', 'keyboard': 'КЛАВИАТУРА',
+    'cell phone': 'ТЕЛЕФОН', 'calculator': 'КАЛЬКУЛЯТОР', 'cookies': 'ПЕЧЕНЬЕ',
+    't-shirt': 'ФУТБОЛКА', 'backpack': 'РЮКЗАК', 'book': 'КНИГА', 'tv': 'ТВ',
+    'remote': 'ПУЛЬТ', 'scissors': 'НОЖНИЦЫ', 'toothbrush': 'ЗУБНАЯ ЩЕТКА'
 };
 
-let model, currentStream, 
-    video = document.getElementById('video'), 
-    canvas = document.getElementById('canvas'), 
-    ctx = canvas.getContext('2d'), 
-    status = document.getElementById('status'), 
-    flipBtn = document.getElementById('flip-btn'), 
-    startBtn = document.getElementById('start-btn'),
-    facingMode = "user";
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const switchBtn = document.getElementById('switch-btn');
+const startBtn = document.getElementById('start-btn');
+
+let model = null;
+let currentStream = null;
+let facingMode = "user"; 
 
 async function loadModel() {
-    try {
-        model = await cocoSsd.load();
-        status.innerText = "ИИ ГОТОВ";
-    } catch (e) {
-        status.innerText = "ОШИБКА ЗАГРУЗКИ МОДЕЛИ";
-    }
+    statusEl.textContent = "⚙️ ЗАГРУЗКА МОДЕЛИ...";
+    model = await cocoSsd.load();
+    statusEl.textContent = "✅ ГОТОВО";
 }
 loadModel();
 
-async function startApp() {
-    await setupCamera();
-    startBtn.style.display = "none";
-    flipBtn.style.display = "block";
-    detect();
+async function initScanner() {
+    startBtn.style.display = 'none';
+    switchBtn.style.display = 'block';
+    await startStream();
+    predict();
 }
 
-async function setupCamera() {
-    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-    
-    const constraints = { 
+async function startStream() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+    }
+
+    // Параметры камеры: на мобилках лучше работает точное указание
+    const constraints = {
         video: { 
-            facingMode: { exact: facingMode === "user" ? "user" : "environment" } 
-        } 
+            facingMode: { ideal: facingMode },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+        }
     };
 
     try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (err) {
-        // Если 'exact' не сработал (на ПК), пробуем обычный режим
-        currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-    }
+        video.srcObject = currentStream;
 
-    video.srcObject = currentStream;
+        if (facingMode === "user") {
+            video.classList.add('mirror');
+            canvas.classList.add('mirror');
+        } else {
+            video.classList.remove('mirror');
+            canvas.classList.remove('mirror');
+        }
 
-    if (facingMode === "user") {
-        video.classList.add('mirror');
-        canvas.classList.add('mirror');
-    } else {
-        video.classList.remove('mirror');
-        canvas.classList.remove('mirror');
+        return new Promise((resolve) => {
+            video.onloadedmetadata = () => resolve();
+        });
+    } catch (e) {
+        statusEl.textContent = "❌ ОШИБКА КАМЕРЫ";
     }
 }
 
-async function flipCamera() {
-    facingMode = facingMode === "user" ? "environment" : "user";
-    status.innerText = "ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ...";
-    await setupCamera();
-    status.innerText = "РЕЖИМ: " + (facingMode === "user" ? "СЕЛФИ" : "ОСНОВНАЯ");
+async function switchCamera() {
+    facingMode = (facingMode === "user") ? "environment" : "user";
+    statusEl.textContent = "🔄 ПЕРЕКЛЮЧЕНИЕ...";
+    await startStream();
+    statusEl.textContent = "✅ КАМЕРА: " + (facingMode === "user" ? "СЕЛФИ" : "ОСНОВНАЯ");
 }
 
-async function detect() {
+async function predict() {
     if (!model) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const predictions = await model.detect(video);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    predictions.forEach(p => {
-        const x = p.bbox[0];
-        const y = p.bbox[1];
-        const w = p.bbox[2];
-        const h = p.bbox[3];
 
-        // Рисуем рамку
-        ctx.strokeStyle = "#0f0";
-        ctx.lineWidth = 5;
-        ctx.strokeRect(x, y, w, h);
-        
-        // Перевод названия
-        const englishName = p.class.toLowerCase();
-        const russianName = TRANSLATIONS[englishName] || englishName.toUpperCase();
-        
-        // Рисуем плашку под текст
-        ctx.fillStyle = "#0f0";
-        ctx.font = "bold 20px Arial";
-        const textWidth = ctx.measureText(russianName).width;
-        ctx.fillRect(x, y > 30 ? y - 30 : y, textWidth + 10, 30);
+    predictions.forEach(prediction => {
+        const [x, y, width, height] = prediction.bbox;
+        const rawLabel = prediction.class;
+        // Берем перевод или оставляем оригинал
+        const label = RU_LABELS[rawLabel] || rawLabel.toUpperCase();
+        const score = Math.round(prediction.score * 100);
 
-        // Текст названия
+        ctx.strokeStyle = "#00ff44";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x, y, width, height);
+
+        ctx.fillStyle = "#00ff44";
+        ctx.font = "bold 18px monospace";
+        const text = `${label} ${score}%`;
+        const textWidth = ctx.measureText(text).width;
+        
+        ctx.fillRect(x, y > 25 ? y - 30 : y, textWidth + 10, 30);
         ctx.fillStyle = "#000";
-        ctx.fillText(russianName, x + 5, y > 30 ? y - 8 : y + 22);
+        ctx.fillText(text, x + 5, y > 25 ? y - 8 : y + 20);
     });
-    
-    requestAnimationFrame(detect);
+
+    requestAnimationFrame(predict);
 }
 </script>
 </body>
