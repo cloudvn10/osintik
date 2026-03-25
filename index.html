@@ -1,212 +1,359 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pepe App Pro</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --neon-green: #00ff66;
-            --dark-green: #0a1a0a;
-            --cyber-blue: #00eeff;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pepe App - AAA Tracking Engine</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --tg-bg: var(--tg-theme-bg-color, #0a0f0a);
+      --tg-text: var(--tg-theme-text-color, #00ff44);
+      --tg-btn: var(--tg-theme-button-color, rgba(0, 255, 68, 0.2));
+      --primary-neon: #00ff44;
+      --secondary-neon: #00eeff;
+    }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; overflow: hidden; background: #000; color: var(--neon-green); font-family: 'Courier New', monospace; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: var(--tg-bg); color: var(--tg-text); font-family: monospace; }
 
-        .pages {
-            height: 100vh;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none;
-        }
-        .pages::-webkit-scrollbar { display: none; }
+    .pages {
+      height: 100vh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+    }
+    .pages::-webkit-scrollbar { display: none; }
 
-        .page {
-            height: 100vh;
-            scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            padding: 20px;
-        }
+    .page {
+      height: 100vh;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
 
-        /* PAGE 1: Intro */
-        .pepe-wrap { position: relative; z-index: 2; }
-        .pepe-glow {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 300px; height: 300px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 255, 102, 0.2) 0%, transparent 70%);
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse { 0%,100%{opacity:0.3; transform: translate(-50%, -50%) scale(1);} 50%{opacity:0.8; transform: translate(-50%, -50%) scale(1.15);} }
-        
-        .pepe-img { width: 220px; height: 220px; object-fit: contain; filter: drop-shadow(0 0 15px var(--neon-green)); }
-        .username { margin-top: 20px; font-size: 20px; font-weight: bold; letter-spacing: 5px; text-shadow: 0 0 10px var(--neon-green); }
-        .hint { margin-top: 50px; font-size: 12px; opacity: 0.6; animation: bounce 1.5s infinite; }
+    /* BACKGROUND GRID */
+    .page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(0, 255, 68, 0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 255, 68, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-        /* PAGE 2: Tracker */
-        #page2 { background: #050505; }
-        .camera-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            aspect-ratio: 3/4;
-            border: 2px solid rgba(0, 255, 102, 0.3);
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 0 30px rgba(0, 255, 102, 0.1);
-        }
+    /* PAGE 1: INTRO */
+    .pepe-wrap { position: relative; z-index: 1; }
+    .pepe-glow {
+      position: absolute; width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,68,0.2) 0%, transparent 70%);
+      animation: pulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.2);opacity:1} }
+    .pepe-img { width: 280px; height: 280px; object-fit: contain; position: relative; z-index: 2; filter: drop-shadow(0 0 10px rgba(0,255,68,0.5)); }
+    .line { width:200px; height:1px; background:linear-gradient(90deg,transparent,var(--primary-neon),transparent); margin:12px 0; opacity:0.8; z-index: 1; }
+    .username { color:var(--primary-neon); font-size:18px; letter-spacing:3px; text-shadow:0 0 10px rgba(0,255,68,0.8); z-index: 1; }
+    .swipe-hint { position:absolute; bottom:25px; color:rgba(0,255,68,0.6); font-size:12px; letter-spacing:2px; animation:bounce 2s infinite; z-index: 1; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
 
-        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+    /* PAGE 2: HUD & TRACKER */
+    #page2 { background: #030503; }
+    
+    .cam-label { 
+      color: var(--primary-neon); font-size: 12px; letter-spacing: 4px; 
+      margin-bottom: 15px; text-shadow: 0 0 8px var(--primary-neon); z-index: 2; 
+    }
 
-        /* HUD Overlay */
-        .hud-overlay {
-            position: absolute; inset: 0; pointer-events: none;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 4px, 3px 100%;
-        }
-        .scanline {
-            position: absolute; width: 100%; height: 2px;
-            background: rgba(0, 255, 102, 0.2);
-            top: 0; animation: scan 4s linear infinite;
-        }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+    .camera-container { 
+      position: relative; width: 100%; max-width: 480px; height: 70vh; 
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 255, 68, 0.1);
+      border: 1px solid rgba(0, 255, 68, 0.2);
+      z-index: 2;
+    }
 
-        .controls { margin-top: 20px; text-align: center; }
-        #start-btn {
-            background: var(--neon-green); color: black;
-            border: none; padding: 12px 40px; border-radius: 30px;
-            font-weight: bold; font-family: inherit; cursor: pointer;
-            box-shadow: 0 0 20px var(--neon-green); transition: 0.3s;
-        }
-        #start-btn:active { transform: scale(0.95); opacity: 0.8; }
-        .status-bar { font-size: 10px; margin-top: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    /* Video and Canvas perfectly aligned to prevent drift */
+    #video, #canvas { 
+      position: absolute; top: 0; left: 0; 
+      width: 100%; height: 100%; 
+      object-fit: cover; 
+      transform: scaleX(-1); /* Mirror effect */
+    }
+    #video { opacity: 0.4; filter: contrast(1.2) grayscale(0.2); }
+    #canvas { z-index: 2; }
 
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
-    </style>
+    /* HUD Effects: Vignette & CRT Scanlines */
+    .hud-overlay {
+      position: absolute; inset: 0; z-index: 3; pointer-events: none;
+      background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 120%),
+                  repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+    }
+
+    /* Target Locked UI */
+    .target-ui {
+      position: absolute; inset: 20px; border: 2px solid transparent;
+      transition: all 0.3s ease; pointer-events: none; z-index: 4;
+    }
+    .target-ui.locked {
+      border-color: rgba(0, 255, 68, 0.4);
+      animation: targetPulse 2s infinite;
+    }
+    .target-ui.locked::before, .target-ui.locked::after {
+      content: ''; position: absolute; width: 20px; height: 20px; border: 2px solid var(--primary-neon);
+    }
+    .target-ui.locked::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+    .target-ui.locked::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+    @keyframes targetPulse { 0%,100%{transform:scale(1); opacity:0.8} 50%{transform:scale(0.98); opacity:1} }
+
+    /* Glassmorphism UI Elements */
+    .glass-panel {
+      margin-top: 15px; z-index: 2;
+      background: rgba(10, 25, 10, 0.4);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 255, 68, 0.2);
+      border-radius: 8px; padding: 12px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+
+    .status { color: var(--primary-neon); font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 5px rgba(0,255,68,0.5); }
+    
+    #start-btn {
+      background: var(--tg-btn); color: var(--primary-neon);
+      border: 1px solid rgba(0, 255, 68, 0.5);
+      font-family: monospace; font-size: 14px; letter-spacing: 3px; font-weight: bold;
+      padding: 12px 32px; border-radius: 6px; cursor: pointer;
+      transition: all 0.3s; text-transform: uppercase;
+      box-shadow: 0 0 15px rgba(0, 255, 68, 0.1);
+    }
+    #start-btn:hover { background: rgba(0, 255, 68, 0.3); box-shadow: 0 0 20px rgba(0, 255, 68, 0.4); }
+  </style>
 </head>
 <body>
-
 <div class="pages">
-    <div class="page">
-        <div class="pepe-wrap">
-            <div class="pepe-glow"></div>
-            <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe">
-        </div>
-        <div class="username">@LIBAPPS O</div>
-        <div class="hint">▼ ПРОВЕДИ ВНИЗ</div>
+
+  <div class="page">
+    <div class="pepe-wrap">
+      <div class="pepe-glow"></div>
+      <img class="pepe-img" src="https://i.ibb.co/WW50MJxt/pepe.gif" alt="Pepe"/>
+    </div>
+    <div class="line"></div>
+    <div class="username">@libappso</div>
+    <div class="swipe-hint">▼ СВАЙП ВНИЗ</div>
+  </div>
+
+  <div class="page" id="page2">
+    <div class="cam-label">⬡ NEURAL TRACKING ⬡</div>
+    
+    <div class="camera-container">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="hud-overlay"></div>
+      <div class="target-ui" id="target-ui"></div>
     </div>
 
-    <div class="page" id="page2">
-        <div class="camera-wrapper">
-            <video id="video" playsinline></video>
-            <canvas id="canvas"></canvas>
-            <div class="hud-overlay">
-                <div class="scanline"></div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button id="start-btn" onclick="startTracking()">INITIATE SYSTEM</button>
-            <div class="status-bar" id="statusText">System: Offline</div>
-        </div>
+    <div class="glass-panel">
+      <div class="status" id="status">СИСТЕМА ГОТОВА</div>
+      <button id="start-btn" onclick="startEngine()">▶ ИНИЦИАЛИЗАЦИЯ</button>
     </div>
+  </div>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
 
 <script>
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-        tg.expand();
-        tg.enableClosingConfirmation();
+  // Telegram WebApp Init
+  const tg = window.Telegram?.WebApp;
+  if (tg) tg.expand();
+
+  // DOM Elements
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const startBtn = document.getElementById('start-btn');
+  const targetUI = document.getElementById('target-ui');
+
+  // State & History for Motion Trails
+  let isTracking = false;
+  let poseHistory = [];
+  let handsHistory = [];
+  const TRAIL_LENGTH = 6;
+
+  // --- Initialize Models ---
+  const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${f}` });
+  pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  pose.onResults(r => { 
+    if (r.poseLandmarks) {
+      poseHistory.push(r.poseLandmarks);
+      if (poseHistory.length > TRAIL_LENGTH) poseHistory.shift();
+      updateHUD(true);
+    } else {
+      poseHistory.push(null);
+      if (poseHistory.length > TRAIL_LENGTH) poseHistory.shift();
+      updateHUD(false);
+    }
+  });
+
+  const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
+  hands.setOptions({ maxNumHands: 2, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  hands.onResults(r => {
+    if (r.multiHandLandmarks && r.multiHandLandmarks.length > 0) {
+      handsHistory.push(r.multiHandLandmarks);
+    } else {
+      handsHistory.push(null);
+    }
+    if (handsHistory.length > TRAIL_LENGTH) handsHistory.shift();
+  });
+
+  // --- HUD Logic ---
+  function updateHUD(isLocked) {
+    if (isLocked) {
+      targetUI.classList.add('locked');
+      statusEl.textContent = '✓ ЦЕЛЬ ЗАХВАЧЕНА';
+    } else {
+      targetUI.classList.remove('locked');
+      statusEl.textContent = '⟳ ПОИСК БИОМЕТРИИ...';
+    }
+  }
+
+  // --- AAA Rendering Engine ---
+  function drawNeonSkeleton(landmarks, connections, colorStart, colorEnd, isHand = false) {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw Connections with Gradients
+    connections.forEach(conn => {
+      const p1 = landmarks[conn[0]];
+      const p2 = landmarks[conn[1]];
+      if (!p1 || !p2 || p1.visibility < 0.5 || p2.visibility < 0.5) return;
+
+      const x1 = p1.x * canvas.width, y1 = p1.y * canvas.height;
+      const x2 = p2.x * canvas.width, y2 = p2.y * canvas.height;
+
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+      grad.addColorStop(0, colorStart);
+      grad.addColorStop(1, colorEnd);
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = isHand ? 2 : 4;
+      
+      // Cyber-Glow Effect
+      ctx.shadowColor = colorStart;
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+    });
+
+    // Draw Landmarks (Joints)
+    ctx.shadowBlur = 0; // Reset blur for joints
+    landmarks.forEach(lm => {
+      if (lm.visibility && lm.visibility < 0.5) return;
+      ctx.beginPath();
+      ctx.arc(lm.x * canvas.width, lm.y * canvas.height, isHand ? 3 : 5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = colorStart;
+      ctx.stroke();
+    });
+  }
+
+  // 60FPS Render Loop Decoupled from Detection
+  function renderLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Render Pose Trails
+    poseHistory.forEach((historicalPose, index) => {
+      if (!historicalPose) return;
+      const alpha = (index + 1) / poseHistory.length;
+      ctx.globalAlpha = alpha * 0.8; // Max 80% opacity for trails
+      drawNeonSkeleton(historicalPose, POSE_CONNECTIONS, '#00ff44', '#006622');
+    });
+
+    // Render Hand Trails
+    handsHistory.forEach((historicalHands, index) => {
+      if (!historicalHands) return;
+      const alpha = (index + 1) / handsHistory.length;
+      ctx.globalAlpha = alpha * 0.9;
+      historicalHands.forEach(hand => {
+        drawNeonSkeleton(hand, HAND_CONNECTIONS, '#00eeff', '#0055ff', true);
+      });
+    });
+
+    ctx.globalAlpha = 1.0;
+    requestAnimationFrame(renderLoop);
+  }
+
+  // --- Async Processing Loop ---
+  async function processFrames() {
+    if (!isTracking) return;
+    
+    // Ensure canvas dimensions exactly match video to prevent drift
+    if (canvas.width !== video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
     }
 
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const statusText = document.getElementById('statusText');
-    const startBtn = document.getElementById('start-btn');
-
-    let resultsPose = null;
-    let resultsHands = null;
-
-    // Initialize Pose
-    const pose = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
-    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
-    pose.onResults(r => { resultsPose = r; });
-
-    // Initialize Hands
-    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
-    hands.onResults(r => { resultsHands = r; });
-
-    function drawFrame() {
-        // Sync canvas size to video internal size
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        }
-
-        ctx.save();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Body Skeleton
-        if (resultsPose && resultsPose.poseLandmarks) {
-            drawConnectors(ctx, resultsPose.poseLandmarks, POSE_CONNECTIONS, {color: '#00ff66', lineWidth: 4});
-            drawLandmarks(ctx, resultsPose.poseLandmarks, {color: '#ffffff', fillColor: '#00ff66', lineWidth: 2, radius: 4});
-            statusText.innerText = "Target Locked";
-            statusText.style.color = "#00ff66";
-        }
-
-        // Draw Hand Skeleton
-        if (resultsHands && resultsHands.multiHandLandmarks) {
-            for (const landmarks of resultsHands.multiHandLandmarks) {
-                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#00eeff', lineWidth: 3});
-                drawLandmarks(ctx, landmarks, {color: '#ffffff', fillColor: '#00eeff', lineWidth: 1, radius: 3});
-            }
-        }
-
-        ctx.restore();
-        requestAnimationFrame(drawFrame);
+    try {
+      // Run models concurrently to prevent UI blocking
+      await Promise.all([
+        pose.send({ image: video }),
+        hands.send({ image: video })
+      ]);
+    } catch (e) {
+      console.error("Frame processing error:", e);
     }
-
-    async function startTracking() {
-        startBtn.innerText = "LOADING CORE...";
-        startBtn.disabled = true;
-
-        try {
-            const camera = new Camera(video, {
-                onFrame: async () => {
-                    await pose.send({image: video});
-                    await hands.send({image: video});
-                },
-                width: 640,
-                height: 480
-            });
-            
-            await camera.start();
-            startBtn.style.display = 'none';
-            statusText.innerText = "System: Online";
-            requestAnimationFrame(drawFrame);
-        } catch (err) {
-            console.error(err);
-            statusText.innerText = "Error: Camera Denied";
-            startBtn.innerText = "RETRY";
-            startBtn.disabled = false;
-        }
+    
+    // Use native video API for efficient frame polling
+    if (video.requestVideoFrameCallback) {
+      video.requestVideoFrameCallback(processFrames);
+    } else {
+      setTimeout(processFrames, 1000 / 30); // Fallback for older browsers
     }
+  }
+
+  // --- Boot Sequence ---
+  async function startEngine() {
+    if (isTracking) return;
+    startBtn.style.display = 'none';
+    statusEl.textContent = '⟳ АКТИВАЦИЯ СЕНСОРОВ...';
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      video.srcObject = stream;
+
+      video.onloadeddata = () => {
+        isTracking = true;
+        
+        // Start independent rendering loop
+        requestAnimationFrame(renderLoop);
+        
+        // Start detection loop
+        if (video.requestVideoFrameCallback) {
+          video.requestVideoFrameCallback(processFrames);
+        } else {
+          processFrames(); 
+        }
+      };
+
+    } catch (e) {
+      statusEl.textContent = '✗ НЕТ ДОСТУПА К КАМЕРЕ';
+      statusEl.style.color = '#ff4444';
+      startBtn.style.display = 'block';
+    }
+  }
 </script>
-
 </body>
 </html>
